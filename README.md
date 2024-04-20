@@ -99,7 +99,6 @@ python run_data_filtering.py \
   --max_label_length 128
 ```
 
-
 ## 5. Initialize Distil-Whisper
 The script [`create_student_model.py`](create_student_model.py) can be used to initialise a small student model
 from a large teacher model. When initialising a student model with fewer layers than the teacher model, the student is 
@@ -168,7 +167,6 @@ accelerate launch run_distillation.py \
   --overwrite_output_dir \
   --num_train_epochs 8
 ```
- 
 
 ## 7. Evaluate Model
 We evaluate our models for the short form evaluation on audio samples less than 30s in duration. The script  
@@ -188,3 +186,32 @@ accelerate launch run_short_form_eval.py \
 --generation_max_length 256 \
 --language "ja"
 ```
+
+## Misc
+While developing kotoba-whisper models, we have experimented with different split of ReazonSpeech for distillation, and
+all the models and datasets for such ablation study can be found at https://huggingface.co/japanese-asr.
+Following tables are summaries of WER and CER for the distil-whisper model on different size of ReazonSpeech against
+OpenAI whisper models (the model names follow  `distil-whisper-large-v3-ja-reazonspeech-{size of reazonspeech}`).
+
+
+| WER                                                                                                                                               |   common_voice_8_0 |   jsut_basic5000 |   reazonspeech_test |
+|:--------------------------------------------------------------------------------------------------------------------------------------------------|-------------------:|-----------------:|--------------------:|
+| [japanese-asr/distil-whisper-large-v3-ja-reazonspeech-large](https://huggingface.co/japanese-asr/distil-whisper-large-v3-ja-reazonspeech-large)   |              59.27 |            64.36 |               56.62 |
+| [japanese-asr/distil-whisper-large-v3-ja-reazonspeech-medium](https://huggingface.co/japanese-asr/distil-whisper-large-v3-ja-reazonspeech-medium) |              64.38 |            72.02 |               62.99 |
+| [japanese-asr/distil-whisper-large-v3-ja-reazonspeech-small](https://huggingface.co/japanese-asr/distil-whisper-large-v3-ja-reazonspeech-small)   |              85.1  |            94.18 |               82.18 |
+| [japanese-asr/distil-whisper-large-v3-ja-reazonspeech-tiny](https://huggingface.co/japanese-asr/distil-whisper-large-v3-ja-reazonspeech-tiny)     |              99.96 |           100    |               99.05 |
+| [openai/whisper-large-v3](https://huggingface.co/openai/whisper-large-v3)                                                                         |              55.41 |            59.34 |               60.23 |
+| [openai/whisper-medium](https://huggingface.co/openai/whisper-medium)                                                                             |              63.64 |            69.52 |               76.04 |
+| [openai/whisper-small](https://huggingface.co/openai/whisper-small)                                                                               |              74.21 |            82.02 |               82.99 |
+| [openai/whisper-tiny](https://huggingface.co/openai/whisper-tiny)                                                                                 |              93.78 |            97.72 |               94.85 |
+
+| CER                                                                                                                                               |   common_voice_8_0 |   jsut_basic5000 |   reazonspeech_test |
+|:--------------------------------------------------------------------------------------------------------------------------------------------------|-------------------:|-----------------:|--------------------:|
+| [japanese-asr/distil-whisper-large-v3-ja-reazonspeech-large](https://huggingface.co/japanese-asr/distil-whisper-large-v3-ja-reazonspeech-large)   |               9.44 |             8.48 |               12.6  |
+| [japanese-asr/distil-whisper-large-v3-ja-reazonspeech-medium](https://huggingface.co/japanese-asr/distil-whisper-large-v3-ja-reazonspeech-medium) |              10.89 |            11.25 |               16.37 |
+| [japanese-asr/distil-whisper-large-v3-ja-reazonspeech-small](https://huggingface.co/japanese-asr/distil-whisper-large-v3-ja-reazonspeech-small)   |              30.48 |            38.96 |               42.29 |
+| [japanese-asr/distil-whisper-large-v3-ja-reazonspeech-tiny](https://huggingface.co/japanese-asr/distil-whisper-large-v3-ja-reazonspeech-tiny)     |              94.69 |            95.32 |               95.82 |
+| [openai/whisper-large-v3](https://huggingface.co/openai/whisper-large-v3)                                                                         |               8.52 |             7.18 |               15.18 |
+| [openai/whisper-medium](https://huggingface.co/openai/whisper-medium)                                                                             |              11.34 |             9.87 |               29.56 |
+| [openai/whisper-small](https://huggingface.co/openai/whisper-small)                                                                               |              15.26 |            14.22 |               34.29 |
+| [openai/whisper-tiny](https://huggingface.co/openai/whisper-tiny)                                                                                 |              46.86 |            35.69 |               96.69 |
