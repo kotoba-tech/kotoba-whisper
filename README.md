@@ -187,7 +187,7 @@ accelerate launch run_short_form_eval.py \
 --language "ja"
 ```
 
-## Misc
+## Ablation Study
 While developing kotoba-whisper models, we have experimented with different split of ReazonSpeech for distillation, and
 all the models and datasets for such ablation study can be found at https://huggingface.co/japanese-asr.
 Following tables are summaries of WER and CER for the distil-whisper model on different size of ReazonSpeech against

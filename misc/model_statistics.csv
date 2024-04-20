@@ -1,0 +1,6 @@
+,model,vocab_size,param_size_full,param_size_embedding
+0,openai/whisper-tiny,51865,37760640,19916160
+1,openai/whisper-small,51865,241734912,39832320
+2,openai/whisper-medium,51865,763857920,53109760
+3,openai/whisper-large-v3,51866,1543490560,66388480
+4,kotoba-tech/kotoba-whisper-v1.0,51866,756405760,66388480
