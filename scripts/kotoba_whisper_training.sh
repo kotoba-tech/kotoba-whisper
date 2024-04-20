@@ -1,10 +1,11 @@
 ####################
 # Select Data Size #
 ####################
-DATASET_TYPE="tiny"
+# The https://huggingface.co/kotoba-tech/kotoba-whisper-v1.0 is trained on the large split of ReazonSpeech.
+#DATASET_TYPE="tiny"
 #DATASET_TYPE="small"
 #DATASET_TYPE="medium"
-#DATASET_TYPE="large"
+DATASET_TYPE="large"
 
 ##########
 # Config #

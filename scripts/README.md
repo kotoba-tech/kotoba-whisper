@@ -1,5 +1,5 @@
-# Japanese Distil-Whisper Training
-Reproducing the Japanese distil-whisper models requires following five stages to be completed in successive order:
+# Kotoba-Whisper Training
+Reproducing Kotoba-whisper models requires following five stages to be completed in successive order:
 
 1. [Setup](#1-setup)
 2. [Download Dataset](#2-download-dataset)
@@ -9,8 +9,8 @@ Reproducing the Japanese distil-whisper models requires following five stages to
 6. [Train Model](#6-train-model)
 7. [Evaluate Model](#7-evaluate-model)
 
-To know more about the actual commands to reproduce our Japanese distil-whisper models, please refer
-[distill_whisper_reazonspeech.sh](distill_whisper_reazonspeech.sh) for `tiny`/`small`/`medium`/`large`, and
+To know more about the actual commands to reproduce our kotoba-whisper models, please refer
+[kotoba_whisper_training.sh](kotoba_whisper_training.sh) for `tiny`/`small`/`medium`/`large`, and
 [distill_whisper_reazonspeech_all.sh](distill_whisper_reazonspeech_all.sh) for `all` subset of ReazonSpeech. 
 
 
@@ -19,8 +19,8 @@ Clone the repo and configure your huggingface environment.
 
 - pip install
 ```bash
-git clone git@github.com:asahi417/distil-whisper-ja.git
-cd distil-whisper-ja
+git clone git@github.com:kotoba-tech/kotoba-whisper.git
+cd kotoba-whisper
 pip install -r requirements.txt
 ```
 
@@ -50,7 +50,7 @@ python reazonspeech_manual_downloader.py --target all -p 100 -s 0 -e 50
 
 ReazonSpeech `all` has 4096 files in total, and we use the last file to create [our held-out test set](https://huggingface.co/datasets/japanese-asr/ja_asr.reazonspeech_test),
 so we ran the above command until `-e 4095` with reasonable chunk size (we set 50). 
-See the actual usage at [distill_whisper_reazonspeech.sh](distill_whisper_reazonspeech.sh) or [distill_whisper_reazonspeech_all.sh](distill_whisper_reazonspeech_all.sh).
+See the actual usage at [kotoba_whisper_training.sh](kotoba_whisper_training.sh) or [distill_whisper_reazonspeech_all.sh](distill_whisper_reazonspeech_all.sh).
 
 ## 3. Generate Labels by Teacher Whisper Model 
 The python script [`run_pseudo_labelling.py`](./run_pseudo_labelling.py) is a flexible inference script that can be used
@@ -83,7 +83,7 @@ accelerate launch run_pseudo_labelling.py \
   --hub_model_id "{your-hf-org}/{your-dataset-name}"
 
 ```
-See the actual usage at [distill_whisper_reazonspeech.sh](distill_whisper_reazonspeech.sh) or [distill_whisper_reazonspeech_all.sh](distill_whisper_reazonspeech_all.sh). 
+See the actual usage at [kotoba_whisper_training.sh](kotoba_whisper_training.sh) or [distill_whisper_reazonspeech_all.sh](distill_whisper_reazonspeech_all.sh). 
 Note that we use our custom data loader, but any [huggingface audio datasets](https://huggingface.co/docs/datasets/en/audio_dataset) can be used in the above script. 
 
 ## 4. Filter Dataset
@@ -103,7 +103,7 @@ python run_data_filtering.py \
   --max_label_length 128
 ```
 
-See the actual usage at [distill_whisper_reazonspeech.sh](distill_whisper_reazonspeech.sh) or [distill_whisper_reazonspeech_all.sh](distill_whisper_reazonspeech_all.sh). 
+See the actual usage at [kotoba_whisper_training.sh](kotoba_whisper_training.sh) or [distill_whisper_reazonspeech_all.sh](distill_whisper_reazonspeech_all.sh). 
 
 ## 5. Initialize Distil-Whisper
 The script [`create_student_model.py`](create_student_model.py) can be used to initialise a small student model
@@ -173,7 +173,7 @@ accelerate launch run_distillation.py \
   --overwrite_output_dir \
   --num_train_epochs 8
 ```
-See the actual usage at [distill_whisper_reazonspeech.sh](distill_whisper_reazonspeech.sh) or [distill_whisper_reazonspeech_all.sh](distill_whisper_reazonspeech_all.sh). 
+See the actual usage at [kotoba_whisper_training.sh](kotoba_whisper_training.sh) or [distill_whisper_reazonspeech_all.sh](distill_whisper_reazonspeech_all.sh). 
 
 
 ## 7. Evaluate Model
