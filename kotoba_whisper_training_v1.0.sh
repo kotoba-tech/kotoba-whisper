@@ -1,30 +1,13 @@
-####################
-# Select Data Size #
-####################
-# The https://huggingface.co/kotoba-tech/kotoba-whisper-v1.0 is trained on the large split of ReazonSpeech.
-#DATASET_TYPE="tiny"
-#DATASET_TYPE="small"
-#DATASET_TYPE="medium"
-DATASET_TYPE="large"
-
 ##########
 # Config #
 ##########
+DATASET_TYPE="large"  # The data split of ReazonSpeech
 WER_THRESHOLD=10.0  # WER threshold applied at data filtering.
 TEACHER_MODEL="openai/whisper-large-v3"  # Teacher model for the distillation.
-HF_ORG="japanese-asr"  # HuggingFace organization to push the artifacts.
+HF_ORG="kotoba-tech"  # HuggingFace organization to push the artifacts.
 HF_DATASET_ALIAS="whisper_transcriptions.reazonspeech.${DATASET_TYPE}"  # Dataset alias used when pushing datasets.
-HF_MODEL_ALIAS="distil-whisper-large-v3-ja-reazonspeech-${DATASET_TYPE}"  # Model alias used when pushing models.
-# Warmup step.
-if [ "${DATASET_TYPE}" = "tiny" ]; then
-  WARMUP_STEPS=10
-elif [ "${DATASET_TYPE}" = "small" ]; then
-  WARMUP_STEPS=25
-elif [ "${DATASET_TYPE}" = "medium" ]; then
-  WARMUP_STEPS=50
-else
-  WARMUP_STEPS=100
-fi
+HF_MODEL_ALIAS="kotoba-whisper-v1.0"  # Model alias used when pushing models.
+WARMUP_STEPS=100  # Warmup step.
 huggingface-cli login  # Configure huggingface.
 
 ####################
