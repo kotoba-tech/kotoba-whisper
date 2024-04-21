@@ -7,3 +7,6 @@ evaluate>=0.4.1
 wandb
 tensorboard
 nltk
+deepspeed
+wheel
+flash-attn --install-option='--no-build-isolation'
