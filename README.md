@@ -176,7 +176,7 @@ the held-out test split from ReazonSpeech.
 ```bash
 accelerate launch run_short_form_eval.py \
 --model_name_or_path "{your-hf-org}/{your-model-name}" \
---dataset_name "asahi417/ja_asr.reazonspeech_test" \
+--dataset_name "japanese-asr/ja_asr.reazonspeech_test" \
 --dataset_split_name "test" \
 --text_column_name "transcription" \
 --output_dir "eval" \
