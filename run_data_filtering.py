@@ -106,6 +106,10 @@ def main():
         help="Skip WER filtering part."
     )
     parser.add_argument(
+        '--skip_mel_log', action="store_true",
+        help="Skip Logmel conversion part."
+    )
+    parser.add_argument(
         '--max_duration_in_seconds', default=30.0, type=float,
         help="Filter audio files that are longer than `max_duration_in_seconds` seconds"
     )
@@ -325,29 +329,30 @@ def main():
     ######################
     # Log-mel Conversion #
     ######################
+    if not arg.skip_mel_log:
 
-    def log_mel_transformation(batch):
-        """Pre-process the raw dataset: Convert the audio arrays to log-mel spectrogram inputs"""
-        audio = [sample["array"] for sample in batch["audio"]]
-        inputs = feature_extractor(audio, sampling_rate=feature_extractor.sampling_rate)
-        batch["input_features"] = inputs.input_features
-        return batch
+        def log_mel_transformation(batch):
+            """Pre-process the raw dataset: Convert the audio arrays to log-mel spectrogram inputs"""
+            audio = [sample["array"] for sample in batch["audio"]]
+            inputs = feature_extractor(audio, sampling_rate=feature_extractor.sampling_rate)
+            batch["input_features"] = inputs.input_features
+            return batch
 
-    map_fn_train = partial(
-        raw_datasets_labeled_filtered["train"].map,
-        keep_in_memory=True,
-        function=log_mel_transformation,
-        remove_columns=["audio", "text", "whisper_transcript"],
-        batched=True,
-        batch_size=arg.preprocessing_batch_size,
-    )
-    logmel_feature_dataset = DatasetDict({
-        "train": map_fn_train(
-            num_proc=arg.preprocessing_num_workers,
-            desc="obtain log-mel feature from audio"
+        map_fn_train = partial(
+            raw_datasets_labeled_filtered["train"].map,
+            keep_in_memory=True,
+            function=log_mel_transformation,
+            remove_columns=["audio", "text", "whisper_transcript"],
+            batched=True,
+            batch_size=arg.preprocessing_batch_size,
         )
-    })
-    safe_push(logmel_feature_dataset, f"{repo_name}.vectorize", arg.dataset_config_name)
+        logmel_feature_dataset = DatasetDict({
+            "train": map_fn_train(
+                num_proc=arg.preprocessing_num_workers,
+                desc="obtain log-mel feature from audio"
+            )
+        })
+        safe_push(logmel_feature_dataset, f"{repo_name}.vectorize", arg.dataset_config_name)
 
 
 if __name__ == "__main__":
