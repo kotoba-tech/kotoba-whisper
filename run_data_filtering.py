@@ -106,7 +106,7 @@ def main():
         help="Skip WER filtering part."
     )
     parser.add_argument(
-        '--skip_mel_log', action="store_true",
+        '--skip_logmel', action="store_true",
         help="Skip Logmel conversion part."
     )
     parser.add_argument(
@@ -329,7 +329,7 @@ def main():
     ######################
     # Log-mel Conversion #
     ######################
-    if not arg.skip_mel_log:
+    if not arg.skip_logmel:
 
         def log_mel_transformation(batch):
             """Pre-process the raw dataset: Convert the audio arrays to log-mel spectrogram inputs"""
