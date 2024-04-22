@@ -102,12 +102,8 @@ def main():
         help="Probability for training on timestamped tokens if the data contains it."
     )
     parser.add_argument(
-        '--skip_wer_filtering', action="store_true",
+        '--skip_filtering', action="store_true",
         help="Skip WER filtering part."
-    )
-    parser.add_argument(
-        '--skip_attach_label', action="store_true",
-        help="Skip label attaching process."
     )
     parser.add_argument(
         '--max_duration_in_seconds', default=30.0, type=float,
@@ -128,57 +124,55 @@ def main():
         trust_remote_code=True,
     )
     feature_extractor = WhisperFeatureExtractor.from_pretrained(arg.model)
+    repo_name = f"{arg.dataset_name}.wer_{arg.wer_threshold}"
 
-    #################
-    # WER Filtering #
-    #################
-    metric = evaluate.load("wer")
-    tokenizer = WhisperTokenizerFast.from_pretrained(arg.model)
-    # override timestamp tokens until tokenizer issues are fixed in transformers
-    timestamps = [AddedToken("<|%.2f|>" % (i * 0.02), lstrip=False, rstrip=False) for i in range(1500 + 1)]
-    tokenizer.add_tokens(timestamps)
-    if arg.language != "en":
-        normalizer = BasicTextNormalizer()
-        tokenizer.set_prefix_tokens(language=arg.language, task=arg.task, predict_timestamps=False)
-    else:
-        normalizer = EnglishTextNormalizer(tokenizer.english_spelling_normalizer)
+    if not arg.skip_filtering:
+        #################
+        # WER Filtering #
+        #################
+        metric = evaluate.load("wer")
+        tokenizer = WhisperTokenizerFast.from_pretrained(arg.model)
+        # override timestamp tokens until tokenizer issues are fixed in transformers
+        timestamps = [AddedToken("<|%.2f|>" % (i * 0.02), lstrip=False, rstrip=False) for i in range(1500 + 1)]
+        tokenizer.add_tokens(timestamps)
+        if arg.language != "en":
+            normalizer = BasicTextNormalizer()
+            tokenizer.set_prefix_tokens(language=arg.language, task=arg.task, predict_timestamps=False)
+        else:
+            normalizer = EnglishTextNormalizer(tokenizer.english_spelling_normalizer)
 
-    # We need to set the language and task ids for previously multilingual checkpoints
-    teacher_model = WhisperForConditionalGeneration.from_pretrained(arg.model)
-    if hasattr(teacher_model.generation_config, "is_multilingual") and teacher_model.generation_config.is_multilingual:
         # We need to set the language and task ids for previously multilingual checkpoints
-        tokenizer.set_prefix_tokens(language=arg.language, task=arg.task, predict_timestamps=False)
-        timestamp_position = 3
-    else:
-        timestamp_position = 1
+        teacher_model = WhisperForConditionalGeneration.from_pretrained(arg.model)
+        if hasattr(teacher_model.generation_config, "is_multilingual") and teacher_model.generation_config.is_multilingual:
+            # We need to set the language and task ids for previously multilingual checkpoints
+            tokenizer.set_prefix_tokens(language=arg.language, task=arg.task, predict_timestamps=False)
+            timestamp_position = 3
+        else:
+            timestamp_position = 1
 
-    def is_wer_in_range(ground_truth, whisper_transcript):
-        try:
-            norm_ground_truth = normalizer(ground_truth)
-            if (
-                isinstance(whisper_transcript, str)
-                and whisper_transcript.startswith("[")
-                and whisper_transcript.endswith("]")
-            ):
-                whisper_transcript = re.findall(r"\d+", whisper_transcript)
-                whisper_transcript = [int(token) for token in whisper_transcript]
-            if isinstance(whisper_transcript, list):
-                whisper_transcript = tokenizer.decode(whisper_transcript, skip_special_tokens=True)
-            if len(norm_ground_truth) > 0 and whisper_transcript is not None:
-                norm_whisper_transcript = normalizer(whisper_transcript)
-                wer = 100 * metric.compute(predictions=[norm_whisper_transcript], references=[norm_ground_truth])
-                return wer < arg.wer_threshold
-            else:
-                # filter automatically since we can't know the WER
+        def is_wer_in_range(ground_truth, whisper_transcript):
+            try:
+                norm_ground_truth = normalizer(ground_truth)
+                if (
+                        isinstance(whisper_transcript, str)
+                        and whisper_transcript.startswith("[")
+                        and whisper_transcript.endswith("]")
+                ):
+                    whisper_transcript = re.findall(r"\d+", whisper_transcript)
+                    whisper_transcript = [int(token) for token in whisper_transcript]
+                if isinstance(whisper_transcript, list):
+                    whisper_transcript = tokenizer.decode(whisper_transcript, skip_special_tokens=True)
+                if len(norm_ground_truth) > 0 and whisper_transcript is not None:
+                    norm_whisper_transcript = normalizer(whisper_transcript)
+                    wer = 100 * metric.compute(predictions=[norm_whisper_transcript], references=[norm_ground_truth])
+                    return wer < arg.wer_threshold
+                else:
+                    # filter automatically since we can't know the WER
+                    return False
+            except Exception:
                 return False
-        except Exception:
-            return False
 
-    raw_datasets = DatasetDict()
-    if arg.skip_wer_filtering:
-        raw_datasets["train"] = dataset
-        repo_name = arg.dataset_name
-    else:
+        raw_datasets = DatasetDict()
         dataset = dataset.cast_column("audio", datasets.features.Audio(feature_extractor.sampling_rate))
         columns_to_keep = {"audio", "text", "whisper_transcript"}
         dataset = dataset.rename_column(arg.text_column_name, "text")
@@ -193,104 +187,99 @@ def main():
         raw_datasets["train"] = filter_by_wer_threshold(
             num_proc=arg.preprocessing_num_workers, desc="filtering train dataset by wer"
         )
-        repo_name = f"{arg.dataset_name}.wer_{arg.wer_threshold}"
-        safe_push(raw_datasets, repo_name, arg.dataset_config_name)
 
-    #################
-    # Preprocessing #
-    #################
-    # Pre-process the raw dataset in a three stage process:
-    #   1. Convert the audio arrays to log-mel spectrogram inputs
-    #   2. Possibly filter the timestamp tokens from the token ids (depending on the timestamp probability)
-    #   3. Possibly add prompt tokens if conditioning on previous text (depending on the conditioning probability)
-    timestamp_ids = tokenizer.timestamp_ids()
-    timestamp_begin = tokenizer.all_special_ids[-1]
-    decoder_prev_token_id = tokenizer.all_special_ids[-3]  # <|startofprev|>
-    decoder_eot_token_id = tokenizer.eos_token_id
+        #################
+        # Preprocessing #
+        #################
+        # Pre-process the raw dataset in a three stage process:
+        #   1. Convert the audio arrays to log-mel spectrogram inputs
+        #   2. Possibly filter the timestamp tokens from the token ids (depending on the timestamp probability)
+        #   3. Possibly add prompt tokens if conditioning on previous text (depending on the conditioning probability)
+        timestamp_ids = tokenizer.timestamp_ids()
+        timestamp_begin = tokenizer.all_special_ids[-1]
+        decoder_prev_token_id = tokenizer.all_special_ids[-3]  # <|startofprev|>
+        decoder_eot_token_id = tokenizer.eos_token_id
 
-    def has_timestamp_tokens(input_str):
-        """
-        Identify whether the input string contains timestamp tokens, of the form <|0.00|>, by searching for
-        pairs of left and right-angle brackets.
-        """
-        return bool(re.search("\<[^\>]*\>", input_str))
+        def has_timestamp_tokens(input_str):
+            """
+            Identify whether the input string contains timestamp tokens, of the form <|0.00|>, by searching for
+            pairs of left and right-angle brackets.
+            """
+            return bool(re.search("\<[^\>]*\>", input_str))
 
-    def prepare_train_dataset(batch):
-        """
-        Pre-process the raw dataset in a three stage process:
-            1. Possibly filter the timestamp tokens from the token ids (depending on the timestamp probability)
-            2. Possibly add prompt tokens if conditioning on previous text (depending on the conditioning probability)
-        """
-        # process audio input
-        audio = [sample["array"] for sample in batch["audio"]]
-        batch["input_length"] = [len(sample) for sample in audio]
+        def prepare_train_dataset(batch):
+            """
+            Pre-process the raw dataset in a three stage process:
+                1. Possibly filter the timestamp tokens from the token ids (depending on the timestamp probability)
+                2. Possibly add prompt tokens if conditioning on previous text (depending on the conditioning probability)
+            """
+            # process audio input
+            audio = [sample["array"] for sample in batch["audio"]]
+            batch["input_length"] = [len(sample) for sample in audio]
 
-        # process text targets - for training these are the Whisper-generated pseudo-labels
-        input_str_batched = batch["whisper_transcript"]
+            # process text targets - for training these are the Whisper-generated pseudo-labels
+            input_str_batched = batch["whisper_transcript"]
 
-        all_token_ids = []
-        all_token_ids_unprompted = []
-        for input_str in input_str_batched:
-            if isinstance(input_str, list):
-                # pseudo-labelled transcriptions have been retained as token ids (`decode_token_ids=False`)
-                token_ids = input_str
-            elif input_str[0].startswith("[") and input_str[0].endswith("]"):
-                token_ids = re.findall(r"\d+", input_str)
-                token_ids = [int(token) for token in token_ids]
-            else:
-                token_ids = None
-
-            if token_ids is not None:
-                # remove the EOT tokens to get the 'true' token length
-                token_ids = [token for token in token_ids if token != decoder_eot_token_id]
-                token_ids = token_ids + [decoder_eot_token_id]
-                # check whether we have timestamps in the PLs and filter if required
-                has_timestamps = len(set(token_ids) & set(timestamp_ids)) > 0
-                if has_timestamps:
-                    # sample from binomial distribution to get probability of training on timestamps
-                    predict_timestamps = bool(np.random.binomial(1, arg.timestamp_probability))
-                    if not predict_timestamps:
-                        # filter timestamps and insert the <|notimestamps|> task token
-                        token_ids = [token for token in token_ids if token < timestamp_begin]
-                        token_ids.insert(timestamp_position, timestamp_begin)
-            else:
-                # pseudo-labelled transcriptions have been decoded to text (`decode_token_ids=True`)
-                has_timestamps = has_timestamp_tokens(input_str)
-
-                if has_timestamps:
-                    predict_timestamps = bool(np.random.binomial(1, arg.timestamp_probability))
-                    if not predict_timestamps:
-                        # filter timestamp token ids if not part of the prediction task
-                        input_str = tokenizer._filter_timestamp_ids(input_str)
+            all_token_ids = []
+            all_token_ids_unprompted = []
+            for input_str in input_str_batched:
+                if isinstance(input_str, list):
+                    # pseudo-labelled transcriptions have been retained as token ids (`decode_token_ids=False`)
+                    token_ids = input_str
+                elif input_str[0].startswith("[") and input_str[0].endswith("]"):
+                    token_ids = re.findall(r"\d+", input_str)
+                    token_ids = [int(token) for token in token_ids]
                 else:
-                    predict_timestamps = False
+                    token_ids = None
 
-                tokenizer.set_prefix_tokens(
-                    language=arg.language, task="transcribe", predict_timestamps=predict_timestamps
-                )
-                token_ids = tokenizer(input_str).input_ids
+                if token_ids is not None:
+                    # remove the EOT tokens to get the 'true' token length
+                    token_ids = [token for token in token_ids if token != decoder_eot_token_id]
+                    token_ids = token_ids + [decoder_eot_token_id]
+                    # check whether we have timestamps in the PLs and filter if required
+                    has_timestamps = len(set(token_ids) & set(timestamp_ids)) > 0
+                    if has_timestamps:
+                        # sample from binomial distribution to get probability of training on timestamps
+                        predict_timestamps = bool(np.random.binomial(1, arg.timestamp_probability))
+                        if not predict_timestamps:
+                            # filter timestamps and insert the <|notimestamps|> task token
+                            token_ids = [token for token in token_ids if token < timestamp_begin]
+                            token_ids.insert(timestamp_position, timestamp_begin)
+                else:
+                    # pseudo-labelled transcriptions have been decoded to text (`decode_token_ids=True`)
+                    has_timestamps = has_timestamp_tokens(input_str)
 
-            all_token_ids_unprompted.append(token_ids)
-            # check whether to condition on previous text - we do this with probability condition_on_prev_probability
-            condition_on_prev = bool(np.random.binomial(1, arg.condition_on_prev_probability))
-            if condition_on_prev and len(all_token_ids_unprompted) > 1:
-                # prompt ids are the penultimate token ids in the batch
-                prompt_ids = all_token_ids_unprompted[-2]
-                # strip timestamp tokens from prompt
-                prompt_ids = [token for token in prompt_ids if token < timestamp_begin]
-                if len(prompt_ids) > 0:
-                    # remove the standard task tokens and add the special <|startofprev|> token
-                    prompt_ids = [decoder_prev_token_id] + prompt_ids[timestamp_position:-1]
-                if len(prompt_ids + token_ids) < arg.max_label_length:
-                    token_ids = prompt_ids + token_ids
-            all_token_ids.append(token_ids)
+                    if has_timestamps:
+                        predict_timestamps = bool(np.random.binomial(1, arg.timestamp_probability))
+                        if not predict_timestamps:
+                            # filter timestamp token ids if not part of the prediction task
+                            input_str = tokenizer._filter_timestamp_ids(input_str)
+                    else:
+                        predict_timestamps = False
 
-        batch["labels"] = all_token_ids
-        return batch
+                    tokenizer.set_prefix_tokens(
+                        language=arg.language, task="transcribe", predict_timestamps=predict_timestamps
+                    )
+                    token_ids = tokenizer(input_str).input_ids
 
-    if arg.skip_attach_label:
-        raw_datasets_labeled = raw_datasets
-    else:
+                all_token_ids_unprompted.append(token_ids)
+                # check whether to condition on previous text - we do this with probability condition_on_prev_probability
+                condition_on_prev = bool(np.random.binomial(1, arg.condition_on_prev_probability))
+                if condition_on_prev and len(all_token_ids_unprompted) > 1:
+                    # prompt ids are the penultimate token ids in the batch
+                    prompt_ids = all_token_ids_unprompted[-2]
+                    # strip timestamp tokens from prompt
+                    prompt_ids = [token for token in prompt_ids if token < timestamp_begin]
+                    if len(prompt_ids) > 0:
+                        # remove the standard task tokens and add the special <|startofprev|> token
+                        prompt_ids = [decoder_prev_token_id] + prompt_ids[timestamp_position:-1]
+                    if len(prompt_ids + token_ids) < arg.max_label_length:
+                        token_ids = prompt_ids + token_ids
+                all_token_ids.append(token_ids)
+
+            batch["labels"] = all_token_ids
+            return batch
+
         raw_datasets_labeled = DatasetDict()
         map_fn_train = partial(
             raw_datasets["train"].map,
@@ -301,36 +290,37 @@ def main():
         raw_datasets_labeled["train"] = map_fn_train(
             num_proc=arg.preprocessing_num_workers, desc="preprocess train dataset"
         )
-        safe_push(raw_datasets_labeled, repo_name, arg.dataset_config_name)
 
-    #############################
-    # Filtering by audio length #
-    #############################
-    # Filter training data with inputs longer than `max_input_length`
-    max_input_length = int(arg.max_duration_in_seconds * feature_extractor.sampling_rate)
-    min_input_length = int(arg.min_duration_in_seconds * feature_extractor.sampling_rate)
+        #############################
+        # Filtering by audio length #
+        #############################
+        # Filter training data with inputs longer than `max_input_length`
+        max_input_length = int(arg.max_duration_in_seconds * feature_extractor.sampling_rate)
+        min_input_length = int(arg.min_duration_in_seconds * feature_extractor.sampling_rate)
 
-    def is_audio_in_length_range(length):
-        return min_input_length < length < max_input_length
+        def is_audio_in_length_range(length):
+            return min_input_length < length < max_input_length
 
-    def is_labels_in_length_range(labels):
-        return 0 < len(labels) <= arg.max_label_length
+        def is_labels_in_length_range(labels):
+            return 0 < len(labels) <= arg.max_label_length
 
-    filter_by_audio_fn = partial(
-        raw_datasets_labeled.filter, function=is_audio_in_length_range, input_columns=["input_length"]
-    )
-    raw_datasets_labeled_filtered = filter_by_audio_fn(
-        num_proc=arg.preprocessing_num_workers, desc="filtering train dataset by audio length"
-    )
+        filter_by_audio_fn = partial(
+            raw_datasets_labeled.filter, function=is_audio_in_length_range, input_columns=["input_length"]
+        )
+        raw_datasets_labeled_filtered = filter_by_audio_fn(
+            num_proc=arg.preprocessing_num_workers, desc="filtering train dataset by audio length"
+        )
 
-    # Filter training data with labels longer than `max_label_length`
-    filter_by_labels_fn = partial(
-        raw_datasets_labeled_filtered.filter, function=is_labels_in_length_range, input_columns=["labels"]
-    )
-    raw_datasets_labeled_filtered = filter_by_labels_fn(
-        num_proc=arg.preprocessing_num_workers, desc="filtering train dataset"
-    )
-    safe_push(raw_datasets_labeled_filtered, repo_name, arg.dataset_config_name)
+        # Filter training data with labels longer than `max_label_length`
+        filter_by_labels_fn = partial(
+            raw_datasets_labeled_filtered.filter, function=is_labels_in_length_range, input_columns=["labels"]
+        )
+        raw_datasets_labeled_filtered = filter_by_labels_fn(
+            num_proc=arg.preprocessing_num_workers, desc="filtering train dataset"
+        )
+        safe_push(raw_datasets_labeled_filtered, repo_name, arg.dataset_config_name)
+    else:
+        raw_datasets_labeled_filtered = dataset
 
     ######################
     # Log-mel Conversion #
