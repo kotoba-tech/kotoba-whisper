@@ -130,6 +130,7 @@ def main():
     feature_extractor = WhisperFeatureExtractor.from_pretrained(arg.model)
     repo_name = f"{arg.dataset_name}.wer_{arg.wer_threshold}"
 
+
     if not arg.skip_filtering:
         #################
         # WER Filtering #
@@ -324,7 +325,7 @@ def main():
         )
         safe_push(raw_datasets_labeled_filtered, repo_name, arg.dataset_config_name)
     else:
-        raw_datasets_labeled_filtered = dataset
+        raw_datasets_labeled_filtered = DatasetDict({"train": dataset})
 
     ######################
     # Log-mel Conversion #
