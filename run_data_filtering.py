@@ -128,13 +128,12 @@ def main():
         trust_remote_code=True,
     )
     feature_extractor = WhisperFeatureExtractor.from_pretrained(arg.model)
-    repo_name = f"{arg.dataset_name}.wer_{arg.wer_threshold}"
-
 
     if not arg.skip_filtering:
         #################
         # WER Filtering #
         #################
+        repo_name = f"{arg.dataset_name}.wer_{arg.wer_threshold}"
         metric = evaluate.load("wer")
         tokenizer = WhisperTokenizerFast.from_pretrained(arg.model)
         # override timestamp tokens until tokenizer issues are fixed in transformers
@@ -325,6 +324,7 @@ def main():
         )
         safe_push(raw_datasets_labeled_filtered, repo_name, arg.dataset_config_name)
     else:
+        repo_name = arg.dataset_name
         raw_datasets_labeled_filtered = DatasetDict({"train": dataset})
 
     ######################
