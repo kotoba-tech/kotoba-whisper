@@ -45,8 +45,9 @@ def safe_push(dataset_to_push, repo_name, config_name):
         try:
             dataset_to_push.push_to_hub(repo_name, config_name=config_name)
             break
-        except Exception:
+        except Exception as e:
             logger.warning(f"FAILED: push_to_hub on {repo_name} failed. wait 60 sec and retry soon...")
+            logger.warning(repr(e))
             time.sleep(60)
 
 
