@@ -9,4 +9,4 @@ tensorboard
 nltk
 deepspeed
 wheel
-flash-attn --install-option='--no-build-isolation'
+flash-attn --config-settings="--build-option=--no-build-isolation"
