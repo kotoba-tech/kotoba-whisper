@@ -34,12 +34,9 @@ if arg.model is not None:
         model_id, torch_dtype=torch_dtype, low_cpu_mem_usage=True, use_safetensors=True
     )
     model.to(device)
-    processor = AutoProcessor.from_pretrained(model_id)
     pipe = pipeline(
         "automatic-speech-recognition",
         model=model,
-        tokenizer=processor.tokenizer,
-        feature_extractor=processor.feature_extractor,
         max_new_tokens=128,
         torch_dtype=torch_dtype,
         device=device,

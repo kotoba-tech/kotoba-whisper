@@ -7,9 +7,9 @@ from pprint import pprint
 import torch
 import pandas as pd
 from transformers import pipeline
+from transformers.models.whisper.english_normalizer import BasicTextNormalizer
 from datasets import load_dataset
 from evaluate import load
-from transformers.models.whisper.english_normalizer import BasicTextNormalizer
 
 parser = argparse.ArgumentParser(description='Compute CER/WER for Japanese ASR model.')
 parser.add_argument('-m', '--model', default="kotoba-tech/kotoba-whisper-v1.1", type=str)
@@ -56,7 +56,7 @@ pipeline_config = dict(
     torch_dtype=torch_dtype,
     device=device,
     model_kwargs=model_kwargs,
-    chunk_length_s=15,
+    chunk_length_s=arg.chunk_length,
     batch_size=arg.batch
 )
 

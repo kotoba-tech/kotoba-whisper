@@ -1,4 +1,4 @@
-torch>=1.10
+torch==2.2.2
 transformers>=4.35.1
 datasets[audio]>=2.14.7
 accelerate>=0.24.1
@@ -9,4 +9,8 @@ tensorboard
 nltk
 deepspeed
 wheel
+torchaudio
+librosa
+soundfile
+pandas
 flash-attn --config-settings="--build-option=--no-build-isolation"
