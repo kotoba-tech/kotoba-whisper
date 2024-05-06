@@ -13,4 +13,3 @@ torchaudio
 librosa
 soundfile
 pandas
-flash-attn --config-settings="--build-option=--no-build-isolation"
