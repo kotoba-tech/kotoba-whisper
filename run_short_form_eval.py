@@ -25,27 +25,19 @@ arg = parser.parse_args()
 
 os.makedirs(arg.output_dir, exist_ok=True)
 output_metric_file = f"{arg.output_dir}/metric.jsonl"
-metrics = []
-if os.path.exists(output_metric_file):
-    with open(output_metric_file) as f:
-        metrics += [json.loads(s) for s in f.read().split("\n") if len(s) > 0]
-output_prediction_file = f"{arg.output_dir}/prediction.csv"
-dfs = None
-if os.path.exists(output_prediction_file):
-    dfs = pd.read_csv(output_prediction_file, index_col=0)
-
-# display mode
-if arg.pretty_table:
-    df_metric = pd.DataFrame(metrics).round(1)
-    df_metric["cer (wer)"] = [f"{c} ({w})" for c, w in zip(df_metric["cer"], df_metric["wer"])]
-    df_metric = df_metric[["model", "dataset", "cer", "wer", "cer (wer)", "normalized"]].sort_values(["dataset", "model"]).round(1)
-    df_metric_normalized = df_metric[df_metric.normalized]
-    df_metric = df_metric[~df_metric.normalized]
-    print("raw")
-    print(df_metric.pivot(values="cer", columns="dataset", index="model").to_markdown())
-    print("normalized")
-    print(df_metric_normalized.pivot(values="cer", columns="dataset", index="model").to_markdown())
-    exit()
+#
+# # display mode
+# if arg.pretty_table:
+#     df_metric = pd.DataFrame(metrics).round(1)
+#     df_metric["cer (wer)"] = [f"{c} ({w})" for c, w in zip(df_metric["cer"], df_metric["wer"])]
+#     df_metric = df_metric[["model", "dataset", "cer", "wer", "cer (wer)", "normalized"]].sort_values(["dataset", "model"]).round(1)
+#     df_metric_normalized = df_metric[df_metric.normalized]
+#     df_metric = df_metric[~df_metric.normalized]
+#     print("raw")
+#     print(df_metric.pivot(values="cer", columns="dataset", index="model").to_markdown())
+#     print("normalized")
+#     print(df_metric_normalized.pivot(values="cer", columns="dataset", index="model").to_markdown())
+#     exit()
 
 # model config
 torch_dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
@@ -80,6 +72,29 @@ references_norm = [normalizer(i).replace(" ", "") for i in dataset['transcriptio
 prediction_raw = [i['text'].replace(" ", "") for i in output]
 references_raw = [i.replace(" ", "") for i in dataset['transcription']]
 
+# compute metrics
+cer_metric = load("cer")
+cer_norm = 100 * cer_metric.compute(predictions=prediction_norm, references=references_norm)
+cer_raw = 100 * cer_metric.compute(predictions=prediction_raw, references=references_raw)
+wer_metric = load("wer")
+wer_norm = 100 * wer_metric.compute(predictions=prediction_norm, references=references_norm)
+wer_raw = 100 * wer_metric.compute(predictions=prediction_raw, references=references_raw)
+metric.update({"cer_raw": cer_raw, "wer_raw": wer_raw, "cer_norm": cer_norm, "wer_norm": wer_norm})
+
+# save the results
+metrics = []
+if os.path.exists(output_metric_file):
+    with open(output_metric_file) as f:
+        metrics += [json.loads(s) for s in f.read().split("\n") if len(s) > 0]
+output_prediction_file = f"{arg.output_dir}/prediction.csv"
+dfs = None
+if os.path.exists(output_prediction_file):
+    dfs = pd.read_csv(output_prediction_file, index_col=0)
+metrics.append(metric)
+pprint(metrics)
+with open(output_metric_file, "w") as f:
+    f.write("\n".join([json.dumps(s) for s in metrics]))
+
 # save prediction
 audio_id = [i["path"] for i in dataset['audio']]
 df = pd.DataFrame(
@@ -94,17 +109,3 @@ df["chunk_length_s"] = arg.chunk_length
 dfs = df if dfs is None else pd.concat([dfs, df])
 dfs.to_csv(output_prediction_file, index=False)
 
-# compute metrics
-cer_metric = load("cer")
-cer_norm = 100 * cer_metric.compute(predictions=prediction_norm, references=references_norm)
-cer_raw = 100 * cer_metric.compute(predictions=prediction_raw, references=references_raw)
-wer_metric = load("wer")
-wer_norm = 100 * wer_metric.compute(predictions=prediction_norm, references=references_norm)
-wer_raw = 100 * wer_metric.compute(predictions=prediction_raw, references=references_raw)
-metric.update({"cer_raw": cer_raw, "wer_raw": wer_raw, "cer_norm": cer_norm, "wer_norm": wer_norm})
-
-# save the results
-metrics.append(metric)
-pprint(metrics)
-with open(output_metric_file, "w") as f:
-    f.write("\n".join([json.dumps(s) for s in metrics]))
