@@ -14,7 +14,7 @@ from evaluate import load
 parser = argparse.ArgumentParser(description='Compute CER/WER for Japanese ASR model.')
 parser.add_argument('-m', '--model', default="kotoba-tech/kotoba-whisper-v1.1", type=str)
 parser.add_argument('-d', '--dataset', default="japanese-asr/ja_asr.jsut_basic5000", type=str)
-parser.add_argument('-a', '--attn', default=None, type=str)
+parser.add_argument('-a', '--attn', default="sdpa", type=str)
 parser.add_argument('-b', '--batch', default=16, type=int)
 parser.add_argument('-c', '--chunk-length', default=15, type=int)
 parser.add_argument('-o', '--output-dir', default="eval_pipeline", type=str)
