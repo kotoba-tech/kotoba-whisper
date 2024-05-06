@@ -50,7 +50,7 @@ if arg.pretty_table:
 # model config
 torch_dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
-model_kwargs = {"attn_implementation": arg.attn} if torch.cuda.is_available() else {}
+model_kwargs = {"attn_implementation": arg.attn} if torch.cuda.is_available() and arg.attn else {}
 generate_kwargs = {"language": "japanese", "task": "transcribe"}
 pipeline_config = dict(
     model=arg.model,
