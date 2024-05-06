@@ -1,4 +1,4 @@
-torch==2.2.2
+torch>=1.10
 transformers>=4.35.1
 datasets[audio]>=2.14.7
 accelerate>=0.24.1
