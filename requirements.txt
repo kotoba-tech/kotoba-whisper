@@ -10,6 +10,9 @@ nltk
 deepspeed
 wheel
 torchaudio
+tabulate
 librosa
 soundfile
 pandas
+stable_ts
+punctuators

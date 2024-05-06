@@ -25,19 +25,20 @@ arg = parser.parse_args()
 
 os.makedirs(arg.output_dir, exist_ok=True)
 output_metric_file = f"{arg.output_dir}/metric.jsonl"
-#
-# # display mode
-# if arg.pretty_table:
-#     df_metric = pd.DataFrame(metrics).round(1)
-#     df_metric["cer (wer)"] = [f"{c} ({w})" for c, w in zip(df_metric["cer"], df_metric["wer"])]
-#     df_metric = df_metric[["model", "dataset", "cer", "wer", "cer (wer)", "normalized"]].sort_values(["dataset", "model"]).round(1)
-#     df_metric_normalized = df_metric[df_metric.normalized]
-#     df_metric = df_metric[~df_metric.normalized]
-#     print("raw")
-#     print(df_metric.pivot(values="cer", columns="dataset", index="model").to_markdown())
-#     print("normalized")
-#     print(df_metric_normalized.pivot(values="cer", columns="dataset", index="model").to_markdown())
-#     exit()
+
+# display mode
+if arg.pretty_table:
+    with open(output_metric_file) as f:
+        metrics = [json.loads(s) for s in f.read().split("\n") if len(s) > 0]
+    df_metric = pd.DataFrame(metrics).round(1).sort_values(["dataset", "model"])
+    df_metric["cer/wer (norm)"] = [f"{c}/{w}" for c, w in zip(df_metric["cer_norm"], df_metric["wer_norm"])]
+    df_metric["cer/wer (raw)"] = [f"{c}/{w}" for c, w in zip(df_metric["cer_raw"], df_metric["wer_raw"])]
+    df_metric = df_metric[["model", "dataset", "punctuator", "stable_ts", "cer/wer (raw)", "cer/wer (norm)"]]
+    print("\nNORM")
+    print(df_metric.pivot(values="cer/wer (norm)", columns="dataset", index="model").to_markdown())
+    print("\nRAW")
+    print(df_metric.pivot(values="cer/wer (raw)", columns="dataset", index="model").to_markdown())
+    exit()
 
 # model config
 torch_dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32

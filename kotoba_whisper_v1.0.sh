@@ -101,12 +101,10 @@ accelerate launch run_distillation.py \
 # Evaluate Student Model #
 ##########################
 export CUDA_VISIBLE_DEVICES=0
-for MODEL in "kotoba-tech/kotoba-whisper-v1.0" "kotoba-tech/kotoba-whisper-v1.0"
+MODEL="kotoba-tech/kotoba-whisper-v1.0"
+for DATA in "japanese-asr/ja_asr.jsut_basic5000" "japanese-asr/ja_asr.reazonspeech_test" "japanese-asr/ja_asr.common_voice_8_0"
 do
-    for DATA in "japanese-asr/ja_asr.jsut_basic5000" "japanese-asr/ja_asr.reazonspeech_test" "japanese-asr/ja_asr.common_voice_8_0"
-    do
-        python run_short_form_eval.py -m ${MODEL} -d "${DATA}" -b 32
-    done
+    python run_short_form_eval.py -m ${MODEL} -d "${DATA}" -b 256
 done
 
 #####################################
@@ -117,7 +115,7 @@ for MODEL in "openai/whisper-large" "openai/whisper-large-v2" "openai/whisper-la
 do
     for DATA in "japanese-asr/ja_asr.jsut_basic5000" "japanese-asr/ja_asr.reazonspeech_test" "japanese-asr/ja_asr.common_voice_8_0"
     do
-        python run_short_form_eval.py -m ${MODEL} -d "${DATA}" -b 16
+        python run_short_form_eval.py -m ${MODEL} -d "${DATA}" -b 256
     done
 done
 
