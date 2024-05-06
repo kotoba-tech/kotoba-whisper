@@ -14,6 +14,7 @@ from evaluate import load
 parser = argparse.ArgumentParser(description='Compute CER/WER for Japanese ASR model.')
 parser.add_argument('-m', '--model', default="kotoba-tech/kotoba-whisper-v1.1", type=str)
 parser.add_argument('-d', '--dataset', default="japanese-asr/ja_asr.jsut_basic5000", type=str)
+parser.add_argument('-a', '--attn', default=None, type=str)
 parser.add_argument('-b', '--batch', default=16, type=int)
 parser.add_argument('-c', '--chunk-length', default=15, type=int)
 parser.add_argument('-o', '--output-dir', default="eval_pipeline", type=str)
@@ -49,7 +50,7 @@ if arg.pretty_table:
 # model config
 torch_dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
-model_kwargs = {"attn_implementation": "sdpa"} if torch.cuda.is_available() else {}
+model_kwargs = {"attn_implementation": arg.attn} if torch.cuda.is_available() else {}
 generate_kwargs = {"language": "japanese", "task": "transcribe"}
 pipeline_config = dict(
     model=arg.model,
