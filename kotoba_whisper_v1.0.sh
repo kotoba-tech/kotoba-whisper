@@ -1,7 +1,7 @@
 ##########
 # Config #
 ##########
-DATASET_TYPE="large"  # The data split of ReazonSpeech
+DATASET_TYPE="large"  # The data split of ReazonSpeech.
 WER_THRESHOLD=10.0  # WER threshold applied at data filtering.
 TEACHER_MODEL="openai/whisper-large-v3"  # Teacher model for the distillation.
 HF_ORG="kotoba-tech"  # HuggingFace organization to push the artifacts.
@@ -100,55 +100,24 @@ accelerate launch run_distillation.py \
 ##########################
 # Evaluate Student Model #
 ##########################
-export WANDB_DISABLED="true"
-for EVAL_DATASET in "asahi417/ja_asr.jsut_basic5000" "asahi417/ja_asr.common_voice_8_0" "asahi417/ja_asr.reazonspeech_test"
+for MODEL in "kotoba-tech/kotoba-whisper-v1.0" "kotoba-tech/kotoba-whisper-v1.0"
 do
-  accelerate launch ./run_short_form_eval.py \
-    --model_name_or_path "${HF_ORG}/${HF_MODEL_ALIAS}" \
-    --dataset_name "${EVAL_DATASET}" \
-    --dataset_split_name "test" \
-    --text_column_name "transcription" \
-    --output_dir "eval/${HF_MODEL_ALIAS}.${EVAL_DATASET##*/}" \
-    --per_device_eval_batch_size 4 \
-    --dataloader_num_workers 1 \
-    --preprocessing_num_workers 1 \
-    --generation_max_length 256 \
-    --language "ja" \
-    --wandb_project "wandb.${HF_MODEL_ALIAS}.${EVAL_DATASET##*/}"
+    for DATA in "japanese-asr/ja_asr.jsut_basic5000" "japanese-asr/ja_asr.reazonspeech_test" "japanese-asr/ja_asr.common_voice_8_0"
+    do
+        python run_eval_pipeline.py -m ${MODEL} -d "${DATA}" -b 32
+    done
 done
 
 #####################################
 # (Optional) Evaluate Teacher Model #
 #####################################
-WHISPER_MODEL="openai/whisper-tiny"
-WHISPER_MODEL="openai/whisper-small"
-WHISPER_MODEL="openai/whisper-medium"
-WHISPER_MODEL="openai/whisper-large-v3"
 
-if [ "${WHISPER_MODEL}" = "openai/whisper-tiny" ]; then
-  BATCH_SIZE=256
-elif [ "${WHISPER_MODEL}" = "openai/whisper-small" ]; then
-  BATCH_SIZE=128
-elif [ "${WHISPER_MODEL}" = "openai/whisper-medium" ]; then
-  BATCH_SIZE=64
-else
-  BATCH_SIZE=32
-fi
-export WANDB_DISABLED="true"
-for EVAL_DATASET in "asahi417/ja_asr.jsut_basic5000" "asahi417/ja_asr.common_voice_8_0" "asahi417/ja_asr.reazonspeech_test"
+for MODEL in "openai/whisper-large" "openai/whisper-large-v2" "openai/whisper-large-v3" "openai/whisper-medium" "openai/whisper-small" "openai/whisper-base" "openai/whisper-tiny"
 do
-  accelerate launch ./run_short_form_eval.py \
-    --model_name_or_path "${WHISPER_MODEL}" \
-    --dataset_name "${EVAL_DATASET}" \
-    --dataset_split_name "test" \
-    --text_column_name "transcription" \
-    --output_dir "eval/${WHISPER_MODEL##*/}.${EVAL_DATASET##*/}" \
-    --per_device_eval_batch_size "${BATCH_SIZE}" \
-    --dataloader_num_workers 32 \
-    --preprocessing_num_workers 32 \
-    --generation_max_length 256 \
-    --language "ja" \
-    --wandb_project "wandb.${WHISPER_MODEL##*/}.${EVAL_DATASET##*/}"
+    for DATA in "japanese-asr/ja_asr.jsut_basic5000" "japanese-asr/ja_asr.reazonspeech_test" "japanese-asr/ja_asr.common_voice_8_0"
+    do
+        python run_eval_pipeline.py -m ${MODEL} -d "${DATA}" -b 32
+    done
 done
 
 

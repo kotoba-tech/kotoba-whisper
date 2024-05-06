@@ -9,8 +9,9 @@ Reproducing Kotoba-whisper models requires following five stages to be completed
 6. [Train Model](#6-train-model)
 7. [Evaluate Model](#7-evaluate-model)
 
-Please see [kotoba_whisper_training_v1.0.sh](kotoba_whisper_training_v1.0.sh) for the actual commands used to reproduce 
-[kotoba-tech/kotoba-whisper-v1.0](https://huggingface.co/kotoba-tech/kotoba-whisper-v1.0).
+To reproduce kotoba-whisper models, please refer the following scripts:
+- [kotoba-tech/kotoba-whisper-v1.0](https://huggingface.co/kotoba-tech/kotoba-whisper-v1.0): [kotoba_whisper_v1.0.sh](kotoba_whisper_v1.0.sh)
+- [kotoba-tech/kotoba-whisper-v1.1](https://huggingface.co/kotoba-tech/kotoba-whisper-v1.1): [kotoba_whisper_v1.1.sh](kotoba_whisper_v1.1.sh)
 
 ## 1. Setup
 Clone the repo and configure your huggingface environment.
@@ -174,17 +175,7 @@ We evaluate our models for the short form evaluation on audio samples less than 
 dataset. Following example runs evaluation on [japanese-asr/ja_asr.reazonspeech_test](https://huggingface.co/datasets/japanese-asr/ja_asr.reazonspeech_test),
 the held-out test split from ReazonSpeech.
 ```bash
-accelerate launch run_short_form_eval.py \
---model_name_or_path "{your-hf-org}/{your-model-name}" \
---dataset_name "japanese-asr/ja_asr.reazonspeech_test" \
---dataset_split_name "test" \
---text_column_name "transcription" \
---output_dir "eval" \
---per_device_eval_batch_size 4 \
---dataloader_num_workers 1 \
---preprocessing_num_workers 1 \
---generation_max_length 256 \
---language "ja"
+python run_eval_pipeline.py -m "{your-hf-org}/{your-model-name}" -d "japanese-asr/ja_asr.reazonspeech_test"
 ```
 
 ## Ablation Study
