@@ -75,7 +75,7 @@ metric.update({"punctuator": punctuator, "stable_ts": stable_ts})
 dataset = load_dataset(arg.dataset, split="test")
 output = pipe(dataset['audio'], generate_kwargs=generate_kwargs)
 normalizer = BasicTextNormalizer()
-prediction_norm = [normalizer(i).replace(" ", "") for i in output]
+prediction_norm = [normalizer(i['text']).replace(" ", "") for i in output]
 references_norm = [normalizer(i).replace(" ", "") for i in dataset['transcription']]
 prediction_raw = [i['text'].replace(" ", "") for i in output]
 references_raw = [i.replace(" ", "") for i in dataset['transcription']]

@@ -117,7 +117,7 @@ for MODEL in "openai/whisper-large" "openai/whisper-large-v2" "openai/whisper-la
 do
     for DATA in "japanese-asr/ja_asr.jsut_basic5000" "japanese-asr/ja_asr.reazonspeech_test" "japanese-asr/ja_asr.common_voice_8_0"
     do
-        python run_short_form_eval.py -m ${MODEL} -d "${DATA}" -b 32
+        python run_short_form_eval.py -m ${MODEL} -d "${DATA}" -b 16
     done
 done
 
