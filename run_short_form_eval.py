@@ -46,14 +46,14 @@ if arg.pretty_table:
     df_metric["model"] = [pretty(m, p, s) for m, p, s in zip(df_metric["model"], df_metric["punctuator"], df_metric["stable_ts"])]
     # df_metric = df_metric[["model", "dataset", "punctuator", "stable_ts", "cer/wer (raw)", "cer/wer (norm)"]]
     df_metric = df_metric[["model", "dataset", "punctuator", "stable_ts", "cer_norm", "cer_raw"]]
+    g = df_metric.groupby(["model", "dataset", "punctuator", "stable_ts"]).first()
     print(df_metric)
-    df_metric = df_metric.drop_duplicates()
     print("\nNORM")
     # print(df_metric.pivot(values="cer/wer (norm)", columns="dataset", index="model").to_markdown())
-    print(df_metric.pivot(values="cer_norm", columns="dataset", index="model").to_markdown())
+    print(df_metric.pivot_table(values="cer_norm", columns="dataset", index="model", aggfunc='first').to_markdown())
     print("\nRAW")
     # print(df_metric.pivot(values="cer/wer (raw)", columns="dataset", index="model").to_markdown())
-    print(df_metric.pivot(values="cer_raw", columns="dataset", index="model").to_markdown())
+    print(df_metric.pivot_table(values="cer_raw", columns="dataset", index="model", aggfunc='first').to_markdown())
     exit()
 
 # model config
@@ -85,9 +85,9 @@ dataset = load_dataset(arg.dataset, split="test")
 output = pipe(dataset['audio'], generate_kwargs=generate_kwargs)
 normalizer = BasicTextNormalizer()
 prediction_norm = [normalizer(i['text']).replace(" ", "") for i in output]
-references_norm = [normalizer(i).replace(" ", "") for i in dataset['transcription']]
+references_norm = [normalizer(i).replace(" ", "").replace("。.", "。") for i in dataset['transcription']]
 prediction_raw = [i['text'].replace(" ", "") for i in output]
-references_raw = [i.replace(" ", "") for i in dataset['transcription']]
+references_raw = [i.replace(" ", "").replace("。.", "。") for i in dataset['transcription']]
 
 # compute metrics
 cer_metric = load("cer")
