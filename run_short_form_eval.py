@@ -44,13 +44,16 @@ if arg.pretty_table:
         return m
 
     df_metric["model"] = [pretty(m, p, s) for m, p, s in zip(df_metric["model"], df_metric["punctuator"], df_metric["stable_ts"])]
-    df_metric = df_metric[["model", "dataset", "punctuator", "stable_ts", "cer/wer (raw)", "cer/wer (norm)"]]
+    # df_metric = df_metric[["model", "dataset", "punctuator", "stable_ts", "cer/wer (raw)", "cer/wer (norm)"]]
+    df_metric = df_metric[["model", "dataset", "punctuator", "stable_ts", "cer_norm", "cer_raw"]]
     print(df_metric)
     df_metric = df_metric.drop_duplicates()
     print("\nNORM")
-    print(df_metric.pivot(values="cer/wer (norm)", columns="dataset", index="model").to_markdown())
+    # print(df_metric.pivot(values="cer/wer (norm)", columns="dataset", index="model").to_markdown())
+    print(df_metric.pivot(values="cer_norm", columns="dataset", index="model").to_markdown())
     print("\nRAW")
-    print(df_metric.pivot(values="cer/wer (raw)", columns="dataset", index="model").to_markdown())
+    # print(df_metric.pivot(values="cer/wer (raw)", columns="dataset", index="model").to_markdown())
+    print(df_metric.pivot(values="cer_raw", columns="dataset", index="model").to_markdown())
     exit()
 
 # model config
@@ -101,9 +104,6 @@ if os.path.exists(output_metric_file):
     with open(output_metric_file) as f:
         metrics += [json.loads(s) for s in f.read().split("\n") if len(s) > 0]
 output_prediction_file = f"{arg.output_dir}/prediction.csv"
-dfs = None
-if os.path.exists(output_prediction_file):
-    dfs = pd.read_csv(output_prediction_file, index_col=0)
 metrics.append(metric)
 pprint(metrics)
 with open(output_metric_file, "w") as f:
@@ -115,11 +115,4 @@ df = pd.DataFrame(
     [audio_id, references_norm, prediction_norm, references_raw, prediction_raw],
     index=["id", "reference_norm", "prediction_norm", "reference_raw", "prediction_raw"]
 ).T
-df["model"] = arg.model
-df["dataset"] = arg.dataset
-df["stable_ts"] = stable_ts
-df["punctuator"] = punctuator
-df["chunk_length_s"] = arg.chunk_length
-dfs = df if dfs is None else pd.concat([dfs, df])
-dfs.to_csv(output_prediction_file, index=False)
-
+df.to_csv(f"{output_prediction_file}/model-{os.path.basename(arg.model)}.dataset-{os.path.basename(arg.dataset)}.stable-ts-{stable_ts}.punctuator-{punctuator}.chunk_length-{arg.chunk_length}.csv", index=False)
