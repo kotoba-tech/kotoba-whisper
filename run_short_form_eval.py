@@ -115,4 +115,4 @@ df = pd.DataFrame(
     [audio_id, references_norm, prediction_norm, references_raw, prediction_raw],
     index=["id", "reference_norm", "prediction_norm", "reference_raw", "prediction_raw"]
 ).T
-df.to_csv(f"{output_prediction_file}/model-{os.path.basename(arg.model)}.dataset-{os.path.basename(arg.dataset)}.stable-ts-{stable_ts}.punctuator-{punctuator}.chunk_length-{arg.chunk_length}.csv", index=False)
+df.to_csv(f"{arg.output_dir}/model-{os.path.basename(arg.model)}.dataset-{os.path.basename(arg.dataset)}.stable-ts-{stable_ts}.punctuator-{punctuator}.chunk_length-{arg.chunk_length}.csv", index=False)
