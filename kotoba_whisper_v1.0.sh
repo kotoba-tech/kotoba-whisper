@@ -101,10 +101,9 @@ accelerate launch run_distillation.py \
 # Evaluate Student Model #
 ##########################
 export CUDA_VISIBLE_DEVICES=0
-MODEL="kotoba-tech/kotoba-whisper-v1.0"
 for DATA in "japanese-asr/ja_asr.jsut_basic5000" "japanese-asr/ja_asr.reazonspeech_test" "japanese-asr/ja_asr.common_voice_8_0"
 do
-    python run_short_form_eval.py -m ${MODEL} -d "${DATA}" -b 256
+    python run_short_form_eval.py -m "kotoba-tech/kotoba-whisper-v1.0" -d "${DATA}" -b 512
 done
 
 #####################################
