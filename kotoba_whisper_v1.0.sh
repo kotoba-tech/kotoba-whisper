@@ -102,19 +102,19 @@ accelerate launch run_distillation.py \
 ##########################
 for DATA in "japanese-asr/ja_asr.jsut_basic5000" "japanese-asr/ja_asr.reazonspeech_test" "japanese-asr/ja_asr.common_voice_8_0"
 do
-    python run_short_form_eval.py -m "kotoba-tech/kotoba-whisper-v1.0" -d "${DATA}" -b 512
+  python run_short_form_eval.py -m "kotoba-tech/kotoba-whisper-v1.0" -d "${DATA}" -b 512
 done
 
 #####################################
 # (Optional) Evaluate Teacher Model #
 #####################################
 
-for MODEL in "openai/whisper-large" "openai/whisper-large-v2" "openai/whisper-large-v3" "openai/whisper-medium" "openai/whisper-small" "openai/whisper-base" "openai/whisper-tiny"
+for DATA in "japanese-asr/ja_asr.jsut_basic5000" "japanese-asr/ja_asr.reazonspeech_test" "japanese-asr/ja_asr.common_voice_8_0"
 do
-    for DATA in "japanese-asr/ja_asr.jsut_basic5000" "japanese-asr/ja_asr.reazonspeech_test" "japanese-asr/ja_asr.common_voice_8_0"
-    do
-        python run_short_form_eval.py -m ${MODEL} -d "${DATA}" -b 128
-    done
+  for MODEL in "openai/whisper-large" "openai/whisper-large-v2" "openai/whisper-large-v3" "openai/whisper-medium" "openai/whisper-small" "openai/whisper-base" "openai/whisper-tiny"
+  do
+    python run_short_form_eval.py -m ${MODEL} -d "${DATA}" -b 128
+  done
 done
 
 
