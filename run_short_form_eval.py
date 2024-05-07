@@ -33,7 +33,20 @@ if arg.pretty_table:
     df_metric = pd.DataFrame(metrics).round(1).sort_values(["dataset", "model"])
     df_metric["cer/wer (norm)"] = [f"{c}/{w}" for c, w in zip(df_metric["cer_norm"], df_metric["wer_norm"])]
     df_metric["cer/wer (raw)"] = [f"{c}/{w}" for c, w in zip(df_metric["cer_raw"], df_metric["wer_raw"])]
+
+    def pretty(m, p, s):
+        if p and s:
+            return f"{m} (punctuator + stable-ts)"
+        if s:
+            return f"{m} (stable-ts)"
+        if p:
+            return f"{m} (punctuator)"
+        return m
+
+    df_metric["model"] = [pretty(m, p, s) for m, p, s in zip(df_metric["model"], df_metric["punctuator"], df_metric["stable_ts"])]
     df_metric = df_metric[["model", "dataset", "punctuator", "stable_ts", "cer/wer (raw)", "cer/wer (norm)"]]
+    print(df_metric)
+    df_metric = df_metric.drop_duplicates()
     print("\nNORM")
     print(df_metric.pivot(values="cer/wer (norm)", columns="dataset", index="model").to_markdown())
     print("\nRAW")
