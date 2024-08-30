@@ -1,12 +1,13 @@
+# kotoba-whisper-v1.0 is whisper distillation with ReazonSpeech Large subset.
 ##########
 # Config #
 ##########
 DATASET_TYPE="large"  # The data split of ReazonSpeech.
 WER_THRESHOLD=10.0  # WER threshold applied at data filtering.
 TEACHER_MODEL="openai/whisper-large-v3"  # Teacher model for the distillation.
-HF_ORG="kotoba-tech"  # HuggingFace organization to push the artifacts.
+HF_ORG="japanese-asr"  # HuggingFace organization to push the artifacts.
 HF_DATASET_ALIAS="whisper_transcriptions.reazonspeech.${DATASET_TYPE}"  # Dataset alias used when pushing datasets.
-HF_MODEL_ALIAS="kotoba-whisper-v1.0"  # Model alias used when pushing models.
+HF_MODEL_ALIAS="distil-whisper-large-v3-ja-reazonspeech-${DATASET_TYPE}"  # Model alias used when pushing models.
 WARMUP_STEPS=100  # Warmup step.
 huggingface-cli login  # Configure huggingface.
 
@@ -102,7 +103,7 @@ accelerate launch run_distillation.py \
 ##########################
 for DATA in "japanese-asr/ja_asr.jsut_basic5000" "japanese-asr/ja_asr.reazonspeech_test" "japanese-asr/ja_asr.common_voice_8_0"
 do
-  python run_short_form_eval.py -m "kotoba-tech/kotoba-whisper-v1.0" -d "${DATA}" -b 512
+  python run_short_form_eval.py -m "${HF_ORG}/${HF_MODEL_ALIAS}" -d "${DATA}" -b 512
 done
 
 #####################################

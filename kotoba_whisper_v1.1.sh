@@ -1,3 +1,4 @@
+# kotoba-whisper-v1.1 is based on kotoba-whisper-v1.0 but with post-processing module built in the huggingface pipeline.
 ########################
 # Push Custom Pipeline #
 ########################
