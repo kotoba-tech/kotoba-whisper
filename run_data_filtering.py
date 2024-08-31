@@ -353,7 +353,7 @@ def main():
                 desc="obtain log-mel feature from audio"
             )
         })
-        safe_push(logmel_feature_dataset, f"{repo_name}.vectorize", arg.dataset_config_name)
+        safe_push(logmel_feature_dataset, f"{repo_name}.vectorized", arg.dataset_config_name)
 
 
 if __name__ == "__main__":

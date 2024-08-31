@@ -1,4 +1,4 @@
-# kotoba-whisper-v1.2 is whisper distillation with ReazonSpeech Large subset. This model is still in progress.
+# kotoba-whisper-v2 finetuning version
 ##########
 # Config #
 ##########
@@ -6,7 +6,7 @@ DATASET_TYPE="all"  # Dataset type alias.
 WER_THRESHOLD=10.0  # WER threshold applied at data filtering.
 TEACHER_MODEL="openai/whisper-large-v3"  # Teacher model for the distillation.
 HF_ORG="japanese-asr"  # HuggingFace organization to push the artifacts.
-HF_DATASET_ALIAS="whisper_transcriptions.reazonspeech.${DATASET_TYPE}"  # Dataset alias used when pushing datasets.
+HF_DATASET_ALIAS="whisper_transcriptions.reazonspeech_mlr.${DATASET_TYPE}"  # Dataset alias used when pushing datasets.
 HF_MODEL_ALIAS="distil-whisper-large-v3-ja-reazonspeech-${DATASET_TYPE}"  # Model alias used when pushing models.
 WARMUP_STEPS=500  # Warmup step.
 huggingface-cli login  # Configure huggingface.
@@ -14,14 +14,12 @@ huggingface-cli login  # Configure huggingface.
 ######################
 # Preprocess Dataset #
 ######################
-CHUNK_SIZE=50
 process_chunk () {
   DATASET_CHUNK_ID=${1}
   CHUNK_START=${2}
   CHUNK_END=${3}
   export PREPROCESSING_ONLY=0
   export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7,8,9  # change it according to the machine
-  python reazonspeech_manual_downloader.py -t "${DATASET_TYPE}" -p 25 -s "${CHUNK_START}" -e "${CHUNK_END}"
   accelerate launch --multi_gpu run_pseudo_labelling.py \
     --model_name_or_path "${TEACHER_MODEL}" \
     --dataset_name "${PWD}/reazonspeech_manual_dataloader.py" \
@@ -47,7 +45,6 @@ process_chunk_no_inference () {
   CHUNK_END=${3}
   export PREPROCESSING_ONLY=1
   export CUDA_VISIBLE_DEVICES=
-  python reazonspeech_manual_downloader.py -t "${DATASET_TYPE}" -p 25 -s "${CHUNK_START}" -e "${CHUNK_END}"
   python run_pseudo_labelling.py \
     --model_name_or_path "${TEACHER_MODEL}" \
     --dataset_name "${PWD}/reazonspeech_manual_dataloader.py" \
