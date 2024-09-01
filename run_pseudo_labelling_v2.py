@@ -246,19 +246,6 @@ def main():
         data_args.audio_column_name, Audio(sampling_rate=feature_extractor.sampling_rate)
     )
 
-    def remove_broken_audio(batch):
-        try:
-            batch[data_args.audio_column_name]
-            return True
-        except Exception:
-            return False
-
-    raw_datasets = raw_datasets.filter(
-        remove_broken_audio,
-        num_proc=data_args.preprocessing_num_workers,
-        desc="remove broken audio"
-    )
-
     def prepare_dataset(batch):
         # process audio
         sample = batch[data_args.audio_column_name]
