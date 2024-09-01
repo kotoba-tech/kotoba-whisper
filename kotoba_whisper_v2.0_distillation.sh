@@ -15,17 +15,18 @@ huggingface-cli login  # Configure huggingface.
 ################################
 generate_en () {
   DATASET_CONFIG=${1}
+  NUM_PROC=${2}
   accelerate launch --multi_gpu run_pseudo_labelling_v2.py \
     --model_name_or_path "${TEACHER_MODEL}" \
     --dataset_name "japanese-asr/en_asr.mls" \
-    --dataset_split "train,val,test" \
+    --dataset_split "train,validation,test" \
     --text_column_name "transcription,transcription/ja_gpt3.5" \
     --language "en,ja" \
     --task "transcribe,translate" \
     --dataset_config_name "${DATASET_CONFIG}" \
-    --per_device_eval_batch_size 32 \
+    --per_device_eval_batch_size 256 \
     --dataloader_num_workers 1 \
-    --preprocessing_num_workers 1 \
+    --preprocessing_num_workers ${NUM_PROC} \
     --logging_steps 5000 \
     --max_label_length 128 \
     --generation_num_beams 1 \
@@ -38,15 +39,16 @@ generate_en () {
 process_en_pre () {
   export PREPROCESSING_ONLY=1
   export CUDA_VISIBLE_DEVICES=
-  generate_en ${1}
+  generate_en ${1} 32
 }
 
 process_en_main () {
   export PREPROCESSING_ONLY=0
-  export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7,8,9  # change it according to the machine
-  generate_en ${1}
+  export CUDA_VISIBLE_DEVICES=0,1  # change it according to the machine
+  generate_en ${1} 32
 }
 
+process_en_main "subset_0"
 process_en_pre "subset_0"
 for i in {0..3}
 do

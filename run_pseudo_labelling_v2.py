@@ -246,6 +246,19 @@ def main():
         data_args.audio_column_name, Audio(sampling_rate=feature_extractor.sampling_rate)
     )
 
+    def remove_broken_audio(batch):
+        try:
+            batch[data_args.audio_column_name]
+            return True
+        except Exception:
+            return False
+
+    raw_datasets = raw_datasets.filter(
+        remove_broken_audio,
+        num_proc=data_args.preprocessing_num_workers,
+        desc="remove broken audio"
+    )
+
     def prepare_dataset(batch):
         # process audio
         sample = batch[data_args.audio_column_name]
@@ -258,6 +271,7 @@ def main():
                 batch[_text], max_length=max_label_length, truncation=True
             ).input_ids
         return batch
+
 
     raw_datasets_features = list(next(iter(raw_datasets.values())).features.keys())
     vectorized_datasets = raw_datasets.map(
@@ -318,11 +332,11 @@ def main():
             input_features = batch["input_features"]
             # Generate predictions and pad to max generated length
             generate_fn = model.module.generate if accelerator.num_processes > 1 else model.generate
-            for n, (_text, _lang, _task) in enumerate(text_lang_task):
-                generated_ids = generate_fn(input_features.to(dtype=bfloat16), language=_lang, task=_task, **gen_kwargs)
-                generated_ids = accelerator.pad_across_processes(generated_ids, dim=1, pad_index=tokenizers[_text].pad_token_id)
+            for n, (text, lang, task) in enumerate(text_lang_task):
+                generated_ids = generate_fn(input_features.to(dtype=bfloat16), language=lang, task=task, **gen_kwargs)
+                generated_ids = accelerator.pad_across_processes(generated_ids, dim=1, pad_index=tokenizers[text].pad_token_id)
                 # Gather all predictions and targets
-                generated_ids, _ = accelerator.gather_for_metrics((generated_ids, batch[f"labels/{_text}"]))
+                generated_ids, _ = accelerator.gather_for_metrics((generated_ids, batch[f"labels/{text}"]))
                 prediction[n].extend(generated_ids.cpu().numpy())
         accelerator.wait_for_everyone()
         for n, prediction in prediction.items():
