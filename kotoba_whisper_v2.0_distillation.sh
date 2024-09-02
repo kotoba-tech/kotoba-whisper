@@ -39,13 +39,13 @@ generate_en () {
 process_en_pre () {
   export PREPROCESSING_ONLY=1
   export CUDA_VISIBLE_DEVICES=
-  generate_en ${1} 32
+  generate_en ${1} 1
 }
 
 process_en_main () {
   export PREPROCESSING_ONLY=0
   export CUDA_VISIBLE_DEVICES=0,1  # change it according to the machine
-  generate_en ${1} 32
+  generate_en ${1} 1
 }
 
 process_en_main "subset_0"

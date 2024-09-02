@@ -334,8 +334,9 @@ def main():
         input_features = batch["input_features"]
         label = batch["labels"]
         # Generate predictions and pad to max generated length
-        generate_fn = model.module.generate if accelerator.num_processes > 1 else model.generate
-        generated_ids = generate_fn(input_features.to(dtype=bfloat16), **gen_kwargs)
+        # generate_fn = model.module.generate if accelerator.num_processes > 1 else model.generate
+        # generate_fn = accelerator.unwrap_model(model).generate
+        generated_ids = accelerator.unwrap_model(model).generate(input_features.to(dtype=bfloat16), **gen_kwargs)
         generated_ids = accelerator.pad_across_processes(generated_ids, dim=1, pad_index=tokenizer.pad_token_id)
         # Gather all predictions and targets
         file_ids, generated_ids, labels = accelerator.gather_for_metrics((file_ids, generated_ids, label))
