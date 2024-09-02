@@ -304,7 +304,7 @@ def main():
     logger.info(f"  Predict labels with timestamps = {data_args.return_timestamps}")
     for s in data_args.dataset_split:
         logger.info(f"  Split: {s}")
-        loader = accelerator.prepare([
+        loader = accelerator.prepare(
             DataLoader(
                 vectorized_datasets[s],
                 batch_size=per_device_eval_batch_size,
@@ -312,7 +312,7 @@ def main():
                 num_workers=training_args.dataloader_num_workers,
                 pin_memory=True
             )
-        ])
+        )
         prediction = {n: [] for n in range(len(text_lang_task))}
         for step, batch in enumerate(tqdm(loader, disable=not accelerator.is_local_main_process)):
             # file_ids = batch.pop("file_ids")

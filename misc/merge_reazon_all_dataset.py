@@ -9,8 +9,8 @@ chunk = 10
 # whisper_transcriptions.reazonspeech.all.wer_10.0.vectorize (fix the name suffix from vectorize -> vectorized)
 # missing: 54
 tmp_dataset = []
-ind = 8
-for n in tqdm(range(81, 83)):
+ind = 1
+for n in tqdm(range(11, 21)):
     dataset = f"japanese-asr/whisper_transcriptions.reazonspeech.all_{n}.wer_10.0.vectorize"
     data = load_dataset(dataset, split="train")
     tmp_dataset.append(data)
