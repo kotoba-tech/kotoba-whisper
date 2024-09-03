@@ -14,6 +14,28 @@ for n in tqdm(range(11, 21)):
     dataset = f"japanese-asr/whisper_transcriptions.reazonspeech.all_{n}.wer_10.0.vectorize"
     data = load_dataset(dataset, split="train")
     tmp_dataset.append(data)
+
+    dataset = f"japanese-asr/whisper_transcriptions.reazonspeech.all_{n}.wer_10.0.vectorized.0"
+    data = load_dataset(dataset, split="train")
+    tmp_dataset.append(data)
+    dataset = f"japanese-asr/whisper_transcriptions.reazonspeech.all_{n}.wer_10.0.vectorized.1"
+    data = load_dataset(dataset, split="train")
+    tmp_dataset.append(data)
+    dataset = f"japanese-asr/whisper_transcriptions.reazonspeech.all_{n}.wer_10.0.vectorized.2"
+    data = load_dataset(dataset, split="train")
+    tmp_dataset.append(data)
+    dataset = f"japanese-asr/whisper_transcriptions.reazonspeech.all_{n}.wer_10.0.vectorized.3"
+    data = load_dataset(dataset, split="train")
+    tmp_dataset.append(data)
+    dataset = f"japanese-asr/whisper_transcriptions.reazonspeech.all_{n}.wer_10.0.vectorized.4"
+    data = load_dataset(dataset, split="train")
+    tmp_dataset.append(data)
+    dataset = f"japanese-asr/whisper_transcriptions.reazonspeech.all_{n}.wer_10.0.vectorized.5"
+    data = load_dataset(dataset, split="train")
+    tmp_dataset.append(data)
+    dataset = f"japanese-asr/whisper_transcriptions.reazonspeech.all_{n}.wer_10.0.vectorized.6"
+    data = load_dataset(dataset, split="train")
+    tmp_dataset.append(data)
     if len(tmp_dataset) == chunk:
         new_data = DatasetDict({"train": concatenate_datasets(tmp_dataset)})
         while True:
