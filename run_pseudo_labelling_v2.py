@@ -224,9 +224,9 @@ def main():
         attn_implementation="sdpa",
     )
     model.eval()
-    assert model.config.decoder_start_token_id is not None, "`config.decoder_start_token_id` is not correctly defined"
+    assert config.decoder_start_token_id is not None, "`config.decoder_start_token_id` is not correctly defined"
     assert hasattr(model.generation_config, "is_multilingual") and model.generation_config.is_multilingual, "model is not multilingual"
-    max_label_length = data_args.max_label_length if data_args.max_label_length is not None else model.config.max_length
+    max_label_length = data_args.max_label_length if data_args.max_label_length is not None else config.max_length
     model_input_name = feature_extractor.model_input_names[0]
     # Prepare everything with accelerate
     model = accelerator.prepare(model)
@@ -265,7 +265,7 @@ def main():
     )
     data_collator = DataCollatorSpeechSeq2SeqWithPadding(
         processor=processor,
-        decoder_start_token_id=model.config.decoder_start_token_id,  # <|startoftranscript|>
+        decoder_start_token_id=config.decoder_start_token_id,  # <|startoftranscript|>
         input_padding="longest",
         target_padding="max_length",
         max_target_length=max_label_length,
@@ -317,9 +317,13 @@ def main():
             for step, batch in enumerate(tqdm(loader, disable=not accelerator.is_local_main_process)):
                 input_features = batch["input_features"]
                 # Generate predictions and pad to max generated length
-                generate_fn = model.module.generate if accelerator.num_processes > 1 else model.generate
                 for n, (text, lang, task) in enumerate(text_lang_task):
-                    generated_ids = generate_fn(input_features.to(dtype=bfloat16), language=lang, task=task, **gen_kwargs)
+                    generated_ids = accelerator.unwrap_model(model).generate(
+                        input_features.to(dtype=bfloat16),
+                        language=lang,
+                        task=task,
+                        **gen_kwargs
+                    )
                     generated_ids = accelerator.pad_across_processes(generated_ids, dim=1, pad_index=tokenizers[text].pad_token_id)
                     generated_ids, _ = accelerator.gather_for_metrics((generated_ids, batch[f"labels/{text}"]))
                     prediction[n].extend(generated_ids.cpu().numpy())

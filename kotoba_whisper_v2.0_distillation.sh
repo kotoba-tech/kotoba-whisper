@@ -71,15 +71,10 @@ process_en_pre () {
 
 # runpod_inference
 process_en_main "subset_2" 8 512
-#process_en_pre "subset_3" 1 512
-#process_en_pre "subset_4" 1 512
 # runpod_prep_2
 process_en_main "subset_0" 8 256
-#process_en_pre "subset_1" 1 256
-#process_en_pre "subset_5" 1 256
 # runpod_prep
-process_en_main "subset_9" 16 512
-#process_en_main "subset_6" 4 512
+process_en_main "subset_9" 8 256
 
 
 for i in {0..3}
