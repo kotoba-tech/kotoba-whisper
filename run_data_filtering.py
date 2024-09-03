@@ -339,21 +339,28 @@ def main():
             batch["input_features"] = inputs.input_features
             return batch
 
-        map_fn_train = partial(
-            raw_datasets_labeled_filtered["train"].map,
-            keep_in_memory=True,
-            function=log_mel_transformation,
-            remove_columns=["audio", "text", "whisper_transcript"],
-            batched=True,
-            batch_size=arg.preprocessing_batch_size,
-        )
-        logmel_feature_dataset = DatasetDict({
-            "train": map_fn_train(
-                num_proc=arg.preprocessing_num_workers,
-                desc="obtain log-mel feature from audio"
+        target = raw_datasets_labeled_filtered["train"]
+        size = len(target)
+        chunk_size = int(size/10)
+        for n, start in enumerate(range(0, len(target), chunk_size)):
+            end = min(size, start + chunk_size)
+            print(start, end)
+            tmp = target.select(list(range(start, end)))
+            map_fn_train = partial(
+                tmp.map,
+                keep_in_memory=True,
+                function=log_mel_transformation,
+                remove_columns=["audio", "text", "whisper_transcript"],
+                batched=True,
+                batch_size=arg.preprocessing_batch_size,
             )
-        })
-        safe_push(logmel_feature_dataset, f"{repo_name}.vectorized", arg.dataset_config_name)
+            logmel_feature_dataset = DatasetDict({
+                "train": map_fn_train(
+                    num_proc=arg.preprocessing_num_workers,
+                    desc="obtain log-mel feature from audio"
+                )
+            })
+            safe_push(logmel_feature_dataset, f"{repo_name}.vectorized.{n}", arg.dataset_config_name)
 
 
 if __name__ == "__main__":

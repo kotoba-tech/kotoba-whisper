@@ -8,14 +8,18 @@ HF_ORG="japanese-asr"  # HuggingFace organization to push the artifacts.
 #HF_DATASET_ALIAS="whisper_transcriptions.reazonspeech_mlr.${DATASET_TYPE}"  # Dataset alias used when pushing datasets.
 #HF_MODEL_ALIAS="distil-whisper-large-v3-ja-reazonspeech-${DATASET_TYPE}"  # Model alias used when pushing models.
 #WARMUP_STEPS=500  # Warmup step.
-huggingface-cli login  # Configure huggingface.
+
+#huggingface-cli login  # Configure huggingface.
 
 ################################
 # Preprocess Dataset (English) #
 ################################
-generate_en () {
+process_en_main () {
   DATASET_CONFIG=${1}
   NUM_PROC=${2}
+  BATCH=${3}
+  export PREPROCESSING_ONLY=0
+  export CUDA_VISIBLE_DEVICES=0  # change it according to the machine
   accelerate launch --multi_gpu run_pseudo_labelling_v2.py \
     --model_name_or_path "${TEACHER_MODEL}" \
     --dataset_name "japanese-asr/en_asr.mls" \
@@ -24,7 +28,7 @@ generate_en () {
     --language "en,ja" \
     --task "transcribe,translate" \
     --dataset_config_name "${DATASET_CONFIG}" \
-    --per_device_eval_batch_size 256 \
+    --per_device_eval_batch_size "${BATCH}" \
     --dataloader_num_workers 1 \
     --preprocessing_num_workers ${NUM_PROC} \
     --logging_steps 5000 \
@@ -33,23 +37,51 @@ generate_en () {
     --overwrite_output_dir \
     --output_dir "output.en_asr.mls__${DATASET_CONFIG}" \
     --hub_model_id "${HF_ORG}/whisper_transcriptions.mls"
-  rm -rf "output.en_asr.mls__${DATASET_CONFIG}"
-  rm -rf "${HOME}/.cache/huggingface/datasets/japanese-asr___en_asr.mls/${DATASET_CONFIG}"
+#  rm -rf "output.en_asr.mls__${DATASET_CONFIG}"
+#  rm -rf "${HOME}/.cache/huggingface/datasets/japanese-asr___en_asr.mls/${DATASET_CONFIG}"
 }
+
 process_en_pre () {
+  DATASET_CONFIG=${1}
+  NUM_PROC=${2}
+  BATCH=${3}
   export PREPROCESSING_ONLY=1
   export CUDA_VISIBLE_DEVICES=
-  generate_en ${1} 1
+  python run_pseudo_labelling_v2.py \
+    --model_name_or_path "${TEACHER_MODEL}" \
+    --dataset_name "japanese-asr/en_asr.mls" \
+    --dataset_split "train,validation,test" \
+    --text_column_name "transcription,transcription/ja_gpt3.5" \
+    --language "en,ja" \
+    --task "transcribe,translate" \
+    --dataset_config_name "${DATASET_CONFIG}" \
+    --per_device_eval_batch_size "${BATCH}" \
+    --dataloader_num_workers 1 \
+    --preprocessing_num_workers ${NUM_PROC} \
+    --logging_steps 5000 \
+    --max_label_length 128 \
+    --generation_num_beams 1 \
+    --overwrite_output_dir \
+    --output_dir "output.en_asr.mls__${DATASET_CONFIG}" \
+    --hub_model_id "${HF_ORG}/whisper_transcriptions.mls"
+#  rm -rf "output.en_asr.mls__${DATASET_CONFIG}"
+#  rm -rf "${HOME}/.cache/huggingface/datasets/japanese-asr___en_asr.mls/${DATASET_CONFIG}"
 }
 
-process_en_main () {
-  export PREPROCESSING_ONLY=0
-  export CUDA_VISIBLE_DEVICES=0,1  # change it according to the machine
-  generate_en ${1} 1
-}
 
-process_en_main "subset_0"
-process_en_pre "subset_0"
+# runpod_inference
+process_en_main "subset_2" 8 512
+#process_en_pre "subset_3" 1 512
+#process_en_pre "subset_4" 1 512
+# runpod_prep_2
+process_en_main "subset_0" 8 256
+#process_en_pre "subset_1" 1 256
+#process_en_pre "subset_5" 1 256
+# runpod_prep
+process_en_main "subset_9" 16 512
+#process_en_main "subset_6" 4 512
+
+
 for i in {0..3}
 do
   process_en_pre "subset_$(( i + 1))" & process_en_main "subset_${i}"
