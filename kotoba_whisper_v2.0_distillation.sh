@@ -43,66 +43,54 @@ process_en_main () {
 #  rm -rf "${HOME}/.cache/huggingface/datasets/japanese-asr___en_asr.mls/${DATASET_CONFIG}"
 }
 
-# runpod_ada_1
-process_en_main "subset_3" 8 256
-# runpod_ada_2
-process_en_main "subset_1" 8 256
 # runpod_inference
 process_en_main "subset_2" 8 64
-# runpod_prep_2
-process_en_main "subset_0" 8 128
 # runpod_prep
 process_en_main "subset_9" 8 128
+# runpod_prep_2
+process_en_main "subset_0" 8 128
+# runpod_ada_1
+process_en_main "subset_3" 8 128
+# runpod_ada_2
+process_en_main "subset_1" 8 128
 
-for i in {0..3}
+for i in {0..9}
 do
-  process_en_main "subset_${i}"
+  process_en_main "subset_${i}" 8 128
 done
-process_en_main "subset_${NEXT_DATA_CONFIG}"
 
-################################
+#################################
 # Preprocess Dataset (Japanese) #
-################################
-generate_en () {
+#################################
+process_ja_main () {
   DATASET_CONFIG=${1}
+  NUM_PROC=${2}
+  BATCH=${3}
   accelerate launch --multi_gpu run_pseudo_labelling_v2.py \
     --model_name_or_path "${TEACHER_MODEL}" \
+    --attn_implementation "${ATTN_IMPLEMENTATION}" \
     --dataset_name "japanese-asr/ja_asr.reazon_speech_all" \
     --dataset_split "train" \
+    --num_chunks 10 \
     --text_column_name "transcription,transcription/en_gpt3.5" \
     --language "ja,en" \
     --task "transcribe,translate" \
     --dataset_config_name "${DATASET_CONFIG}" \
-    --per_device_eval_batch_size 32 \
+    --per_device_eval_batch_size "${BATCH}" \
     --dataloader_num_workers 1 \
-    --preprocessing_num_workers 1 \
+    --preprocessing_num_workers ${NUM_PROC} \
     --logging_steps 5000 \
     --max_label_length 128 \
     --generation_num_beams 1 \
     --overwrite_output_dir \
     --output_dir "output.ja_asr.reazon__${DATASET_CONFIG}" \
     --hub_model_id "${HF_ORG}/whisper_transcriptions.reazon_speech_all"
-  rm -rf "output.ja_asr.reazon__${DATASET_CONFIG}"
-  rm -rf "${HOME}/.cache/huggingface/datasets/japanese-asr___ja_asr.reazon_speech_all/${DATASET_CONFIG}"
-}
-process_en_pre () {
-  export PREPROCESSING_ONLY=1
-  export CUDA_VISIBLE_DEVICES=
-  generate_en ${1}
 }
 
-process_en_main () {
-  export PREPROCESSING_ONLY=0
-  export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7,8,9  # change it according to the machine
-  generate_en ${1}
-}
-
-process_en_pre "subset_0"
-for i in {0..16}
+for i in {0..15}
 do
-  process_en_pre "subset_$(( i + 1))" & process_en_main "subset_${i}"
+  process_ja_main "subset_${i}" 8 128
 done
-process_en_main "subset_${NEXT_DATA_CONFIG}"
 
 
 #####################

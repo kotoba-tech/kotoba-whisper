@@ -10,6 +10,7 @@ HF_DATASET_ALIAS="whisper_transcriptions.reazonspeech.${DATASET_TYPE}"  # Datase
 HF_MODEL_ALIAS="distil-whisper-large-v3-ja-reazonspeech-${DATASET_TYPE}"  # Model alias used when pushing models.
 WARMUP_STEPS=500  # Warmup step.
 huggingface-cli login  # Configure huggingface.
+accelerate config  # Configure accelerate.
 
 ######################
 # Preprocess Dataset #
@@ -165,7 +166,7 @@ distillation () {
     --gradient_accumulation_steps 2 \
     --preprocessing_num_workers 64 \
     --dataloader_num_workers 1 \
-    --output_dir "./" \
+    --output_dir "./${HF_MODEL_ALIAS}" \
     --wandb_project "wandb.${HF_MODEL_ALIAS}" \
     --gradient_checkpointing \
     --freeze_encoder \
@@ -173,7 +174,7 @@ distillation () {
     --do_train \
     --overwrite_output_dir \
     --num_train_epochs 1
-  rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized/${MODEL_CONFIG}"
+#  rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized/${MODEL_CONFIG}"
 }
 
 
@@ -185,9 +186,11 @@ do
     if [ ${i} -eq 1 ] && [ ${s} = 0 ]; then
       # First distillation process needs to start from the local init file with non-zero warm up step.
       git clone "https://huggingface.co/${HF_ORG}/${HF_MODEL_ALIAS}"
-      distillation "${HF_MODEL_ALIAS}/${HF_MODEL_ALIAS}-init" "subset_0" "${WARMUP_STEPS}"
+#      yes | cp run_distillation.py ${HF_MODEL_ALIAS}
+#      cd ${HF_MODEL_ALIAS}
+      distillation "${HF_MODEL_ALIAS}/${HF_MODEL_ALIAS}-init" "split_0" "${WARMUP_STEPS}"
     else
-      distillation "${HF_ORG}/${HF_MODEL_ALIAS}" "subset_${s}" "0"
+      distillation "${HF_ORG}/${HF_MODEL_ALIAS}" "split_${s}" "0"
     fi
   done
 done
