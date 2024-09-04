@@ -24,7 +24,7 @@ process_en_main () {
     --attn_implementation "sdpa" \
     --dataset_name "japanese-asr/en_asr.mls" \
     --dataset_split "train" \
-    --num_chunks 10 \
+    --num_chunks 15 \
     --text_column_name "transcription,transcription/ja_gpt3.5" \
     --language "en,ja" \
     --task "transcribe,translate" \

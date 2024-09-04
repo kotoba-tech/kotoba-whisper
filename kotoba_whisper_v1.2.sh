@@ -149,7 +149,7 @@ distillation () {
   echo "MODEL_NAME  : ${MODEL_NAME}"
   echo "MODEL_CONFIG: ${MODEL_CONFIG}"
   echo "WARMUP_STEPS: ${WARMUP_STEPS}"
-  python -c """from datasets import load_dataset; load_dataset("${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized", "${MODEL_CONFIG}")"""
+  python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', '${MODEL_CONFIG}')"""
   accelerate launch run_distillation.py \
     --model_name_or_path "${MODEL_NAME}" \
     --teacher_model_name_or_path "${TEACHER_MODEL}" \
