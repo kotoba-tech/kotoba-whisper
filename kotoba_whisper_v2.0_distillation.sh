@@ -22,7 +22,7 @@ process_en_main () {
   BATCH=${3}
   accelerate launch --multi_gpu run_pseudo_labelling_v2.py \
     --model_name_or_path "${TEACHER_MODEL}" \
-    --attn-implementation "${ATTN_IMPLEMENTATION}" \
+    --attn_implementation "${ATTN_IMPLEMENTATION}" \
     --dataset_name "japanese-asr/en_asr.mls" \
     --dataset_split "train,validation,test" \
     --text_column_name "transcription,transcription/ja_gpt3.5" \

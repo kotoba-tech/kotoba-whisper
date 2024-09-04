@@ -102,10 +102,10 @@ class DataTrainingArguments:
         default=True,
         metadata={"help": "Whether to return the timestamps with the text."},
     )
-    # attn_implementation: str = field(
-    #     default="sdpa",
-    #     metadata={"help": "Attention implementation."}
-    # )
+    attn_implementation: str = field(
+        default="sdpa",
+        metadata={"help": "Attention implementation."}
+    )
 
 
 @dataclass
