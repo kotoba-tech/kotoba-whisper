@@ -25,6 +25,7 @@ process_chunk () {
   python reazonspeech_manual_downloader.py -t "${DATASET_TYPE}" -p 25 -s "${CHUNK_START}" -e "${CHUNK_END}"
   accelerate launch --multi_gpu run_pseudo_labelling.py \
     --model_name_or_path "${TEACHER_MODEL}" \
+    --attn_implementation "sdpa" \
     --dataset_name "${PWD}/reazonspeech_manual_dataloader.py" \
     --dataset_config_name "${DATASET_TYPE}" \
     --dataset_dir_suffix "${CHUNK_START}_${CHUNK_END}" \
@@ -51,6 +52,7 @@ process_chunk_no_inference () {
   python reazonspeech_manual_downloader.py -t "${DATASET_TYPE}" -p 25 -s "${CHUNK_START}" -e "${CHUNK_END}"
   python run_pseudo_labelling.py \
     --model_name_or_path "${TEACHER_MODEL}" \
+    --attn_implementation "sdpa" \
     --dataset_name "${PWD}/reazonspeech_manual_dataloader.py" \
     --dataset_config_name "${DATASET_TYPE}" \
     --dataset_dir_suffix "${CHUNK_START}_${CHUNK_END}" \
@@ -98,7 +100,6 @@ do
   rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___whisper_transcriptions.reazonspeech.all_${DATASET_CHUNK_ID}*"
 done
 
-
 for DATASET_CHUNK_ID in {1..82}
 do
   python run_data_filtering.py \
@@ -141,19 +142,21 @@ cd ../
 # Training Student Model #
 ##########################
 distillation () {
-  export WANDB_DISABLED="false"
+  export WANDB_DISABLED="true"
   MODEL_NAME=${1}
   MODEL_CONFIG=${2}
   WARMUP_STEPS=${3}
   echo "MODEL_NAME  : ${MODEL_NAME}"
   echo "MODEL_CONFIG: ${MODEL_CONFIG}"
   echo "WARMUP_STEPS: ${WARMUP_STEPS}"
+  python -c """from datasets import load_dataset; load_dataset("${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized", "${MODEL_CONFIG}")"""
   accelerate launch run_distillation.py \
     --model_name_or_path "${MODEL_NAME}" \
     --teacher_model_name_or_path "${TEACHER_MODEL}" \
     --train_dataset_name "${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized" \
     --train_dataset_config_name "${MODEL_CONFIG}" \
     --language "ja" \
+    --attn_implementation "flash_attention_2" \
     --max_label_length 128 \
     --train_split_name "train" \
     --save_steps 2500 \

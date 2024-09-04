@@ -61,6 +61,7 @@ class ModelArguments:
         default=True,
         metadata={"help": "Whether to use one of the fast tokenizer (backed by the tokenizers library) or not."},
     )
+    attn_implementation: str = field(default="sdpa", metadata={"help": "Attention implementation."})
 
 
 @dataclass
@@ -226,7 +227,7 @@ def main():
         token=token,
         low_cpu_mem_usage=True,
         torch_dtype=bfloat16,
-        attn_implementation="sdpa",
+        attn_implementation=model_args.attn_implementation,
     )
     model.eval()
     assert model.config.decoder_start_token_id is not None, "`config.decoder_start_token_id` is not correctly defined"

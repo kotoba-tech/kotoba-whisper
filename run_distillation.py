@@ -97,6 +97,7 @@ class ModelArguments:
             )
         },
     )
+    attn_implementation: str = field(default="sdpa", metadata={"help": "Attention implementation."})
 
 
 @dataclass
@@ -468,7 +469,7 @@ def main():
         token=model_args.token,
         low_cpu_mem_usage=True,
         torch_dtype=torch.bfloat16,
-        attn_implementation="sdpa",
+        attn_implementation=model_args.attn_implementation,
     )
     student_model = WhisperForConditionalGeneration.from_pretrained(
         model_args.model_name_or_path,
@@ -479,7 +480,7 @@ def main():
         token=model_args.token,
         low_cpu_mem_usage=True,
         torch_dtype=torch.bfloat16,
-        attn_implementation="sdpa",
+        attn_implementation=model_args.attn_implementation,
     )
     if student_model.config.decoder_start_token_id is None or teacher_model.config.decoder_start_token_id is None:
         raise ValueError(
