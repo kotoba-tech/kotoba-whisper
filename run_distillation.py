@@ -512,8 +512,8 @@ def main():
         tokenizer.save_pretrained(training_args.output_dir)
         config.save_pretrained(training_args.output_dir)
         student_model.generation_config.save_pretrained(training_args.output_dir)
-        processor = WhisperProcessor.from_pretrained(training_args.output_dir)
     accelerator.wait_for_everyone()
+    processor = WhisperProcessor.from_pretrained(training_args.output_dir)
 
     # 8. Preprocessing the datasets: we need to read the audio files as arrays and tokenize the targets.
     set_seed(training_args.seed)
