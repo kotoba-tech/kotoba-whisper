@@ -24,7 +24,8 @@ process_en_main () {
     --model_name_or_path "${TEACHER_MODEL}" \
     --attn_implementation "${ATTN_IMPLEMENTATION}" \
     --dataset_name "japanese-asr/en_asr.mls" \
-    --dataset_split "train,validation,test" \
+    --dataset_split "train" \
+    --num_chunks 10 \
     --text_column_name "transcription,transcription/ja_gpt3.5" \
     --language "en,ja" \
     --task "transcribe,translate" \
@@ -49,9 +50,9 @@ process_en_main "subset_1" 8 256
 # runpod_inference
 process_en_main "subset_2" 8 64
 # runpod_prep_2
-process_en_main "subset_0" 8 256
+process_en_main "subset_0" 8 128
 # runpod_prep
-process_en_main "subset_9" 8 256
+process_en_main "subset_9" 8 128
 
 for i in {0..3}
 do
