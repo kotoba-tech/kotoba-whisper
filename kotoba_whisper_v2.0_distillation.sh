@@ -5,11 +5,13 @@
 #WER_THRESHOLD=10.0  # WER threshold applied at data filtering.
 TEACHER_MODEL="openai/whisper-large-v3"  # Teacher model for the distillation.
 HF_ORG="japanese-asr"  # HuggingFace organization to push the artifacts.
+ATTN_IMPLEMENTATION="flash_attention_2"  # Use `sdpa` instead if flash attention is not available.
 #HF_DATASET_ALIAS="whisper_transcriptions.reazonspeech_mlr.${DATASET_TYPE}"  # Dataset alias used when pushing datasets.
 #HF_MODEL_ALIAS="distil-whisper-large-v3-ja-reazonspeech-${DATASET_TYPE}"  # Model alias used when pushing models.
 #WARMUP_STEPS=500  # Warmup step.
 
 #huggingface-cli login  # Configure huggingface.
+#accelerate config  # Configure accelerate.
 
 ################################
 # Preprocess Dataset (English) #
@@ -20,6 +22,7 @@ process_en_main () {
   BATCH=${3}
   accelerate launch --multi_gpu run_pseudo_labelling_v2.py \
     --model_name_or_path "${TEACHER_MODEL}" \
+    --attn-implementation "${ATTN_IMPLEMENTATION}" \
     --dataset_name "japanese-asr/en_asr.mls" \
     --dataset_split "train,validation,test" \
     --text_column_name "transcription,transcription/ja_gpt3.5" \
@@ -40,12 +43,15 @@ process_en_main () {
 }
 
 # runpod_inference
-process_en_main "subset_2" 8 512
+process_en_main "subset_2" 8 64
 # runpod_prep_2
 process_en_main "subset_0" 8 256
 # runpod_prep
 process_en_main "subset_9" 8 256
-
+# runpod_ada_1
+process_en_main "subset_3" 8 256
+# runpod_ada_2
+process_en_main "subset_1" 8 256
 
 for i in {0..3}
 do

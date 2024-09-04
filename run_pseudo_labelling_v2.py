@@ -58,10 +58,6 @@ class ModelArguments:
     model_name_or_path: str = field(
         metadata={"help": "Path to pretrained Whisper model or model identifier from huggingface.co/models"}
     )
-    attn_implementation: str = field(
-        default="sdpa",
-        metadata={"help": "Attention implementation."}
-    )
     use_fast_tokenizer: bool = field(
         default=True,
         metadata={"help": "Whether to use one of the fast tokenizer (backed by the tokenizers library) or not."},
@@ -106,6 +102,11 @@ class DataTrainingArguments:
         default=True,
         metadata={"help": "Whether to return the timestamps with the text."},
     )
+    attn_implementation: str = field(
+        default="sdpa",
+        metadata={"help": "Attention implementation."}
+    )
+
 
 
 @dataclass
