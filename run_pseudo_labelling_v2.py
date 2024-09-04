@@ -327,7 +327,7 @@ def main():
             raw_datasets_tmp = raw_datasets_tmp.add_column(f"whisper_{text_lang_task[n][0]}", prediction)
         if accelerator.is_main_process:
             new_data = DatasetDict({data_args.dataset_split: raw_datasets_tmp})
-            safe_push(new_data, training_args.hub_model_id, f"{data_args.dataset_config_name}/{chunk_id}")
+            safe_push(new_data, training_args.hub_model_id, f"{data_args.dataset_config_name}.{chunk_id}")
     accelerator.end_training()
 
 
