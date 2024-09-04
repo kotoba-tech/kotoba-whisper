@@ -165,9 +165,9 @@ distillation () {
     --lr_scheduler_type "constant_with_warmup" \
     --logging_steps 50 \
     --save_total_limit 1 \
-    --per_device_train_batch_size 16 \
-    --gradient_accumulation_steps 2 \
-    --preprocessing_num_workers 64 \
+    --per_device_train_batch_size 8 \
+    --gradient_accumulation_steps 4 \
+    --preprocessing_num_workers 8 \
     --dataloader_num_workers 1 \
     --output_dir "./${HF_MODEL_ALIAS}" \
     --wandb_project "wandb.${HF_MODEL_ALIAS}" \
