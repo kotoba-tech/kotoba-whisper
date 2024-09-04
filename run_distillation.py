@@ -517,21 +517,19 @@ def main():
 
     # 8. Preprocessing the datasets: we need to read the audio files as arrays and tokenize the targets.
     set_seed(training_args.seed)
-    if accelerator.is_main_process:
-        training_datasets = DatasetDict(
-            {
-                "train": load_dataset(
-                    data_args.train_dataset_name,
-                    data_args.train_dataset_config_name,
-                    split=data_args.train_split_name,
-                    trust_remote_code=True,
-                    cache_dir=data_args.dataset_cache_dir,
-                    token=model_args.token,
-                    num_proc=data_args.preprocessing_num_workers
-                )
-            }
-        )
-    accelerator.wait_for_everyone()
+    training_datasets = DatasetDict(
+        {
+            "train": load_dataset(
+                data_args.train_dataset_name,
+                data_args.train_dataset_config_name,
+                split=data_args.train_split_name,
+                trust_remote_code=True,
+                cache_dir=data_args.dataset_cache_dir,
+                token=model_args.token,
+                num_proc=data_args.preprocessing_num_workers
+            )
+        }
+    )
     return_timestamps = data_args.return_timestamps if data_args.timestamp_probability > 0 else False
     decoder_start_token_id = student_model.config.decoder_start_token_id  # <|startoftranscript|>
     decoder_prev_token_id = tokenizer.all_special_ids[-3]  # <|startofprev|>
