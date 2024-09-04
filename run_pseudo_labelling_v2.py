@@ -58,6 +58,10 @@ class ModelArguments:
     model_name_or_path: str = field(
         metadata={"help": "Path to pretrained Whisper model or model identifier from huggingface.co/models"}
     )
+    attn_implementation: str = field(
+        default="sdpa",
+        metadata={"help": "Attention implementation."}
+    )
     use_fast_tokenizer: bool = field(
         default=True,
         metadata={"help": "Whether to use one of the fast tokenizer (backed by the tokenizers library) or not."},
@@ -221,7 +225,7 @@ def main():
         token=token,
         low_cpu_mem_usage=True,
         torch_dtype=bfloat16,
-        attn_implementation="sdpa",
+        attn_implementation=model_args.attn_implementation,
     )
     model.eval()
     assert config.decoder_start_token_id is not None, "`config.decoder_start_token_id` is not correctly defined"
@@ -287,6 +291,55 @@ def main():
 
     number_of_chunk = 10
     raw_datasets_features = list(next(iter(raw_datasets.values())).features.keys())
+
+    # full_dataset = {}
+    # chunk_pointer = {s: 0 for s in raw_datasets}
+    # while True:
+    #     for s in raw_datasets:
+    #         size = len(raw_datasets[s])
+    #         chunk_size = int(size/number_of_chunk)
+    #         start = chunk_pointer[s]
+    #         end = min(start + chunk_size, size)
+    #         logger.info(f"Dataset split: {s} ({start} --> {end})")
+    #         vectorized_datasets = raw_datasets[s].select(list(range(start, end))).map(
+    #             prepare_dataset,
+    #             remove_columns=raw_datasets_features,
+    #             num_proc=data_args.preprocessing_num_workers,
+    #             desc="preprocess dataset"
+    #         )
+    #         # Define Training Schedule
+    #         loader = accelerator.prepare(
+    #             DataLoader(
+    #                 vectorized_datasets,
+    #                 batch_size=training_args.per_device_eval_batch_size,
+    #                 collate_fn=data_collator,
+    #                 num_workers=training_args.dataloader_num_workers,
+    #                 pin_memory=True
+    #             )
+    #         )
+    #         prediction = {n: [] for n in range(len(text_lang_task))}
+    #         for step, batch in enumerate(tqdm(loader, disable=not accelerator.is_local_main_process)):
+    #             # Generate predictions and pad to max generated length
+    #             for n, (text, lang, task) in enumerate(text_lang_task):
+    #                 generated_ids = accelerator.unwrap_model(model).generate(
+    #                     batch["input_features"].to(dtype=bfloat16),
+    #                     language=lang,
+    #                     task=task,
+    #                     **gen_kwargs
+    #                 )
+    #                 generated_ids = accelerator.pad_across_processes(generated_ids, dim=1, pad_index=tokenizers[text].pad_token_id)
+    #                 generated_ids, _ = accelerator.gather_for_metrics((generated_ids, batch[f"labels/{text}"]))
+    #                 prediction[n].extend(generated_ids.cpu().numpy())
+    #             accelerator.wait_for_everyone()
+    #             for n, prediction in prediction.items():
+    #                 raw_datasets_tmp = raw_datasets_tmp.add_column(f"whisper_{text_lang_task[n][0]}", prediction)
+    #             full_dataset[s].append(raw_datasets_tmp)
+    #         if accelerator.is_main_process:
+    #             new_data = DatasetDict({k: concatenate_datasets(v) for k, v in full_dataset.items()})
+    #             safe_push(new_data, training_args.hub_model_id, data_args.dataset_config_name)
+    #             stats = {s: len(new_data[s]) for s in new_data}
+    #             logger.info(f"Pushed latest dataset: {stats}")
+
     full_dataset = {}
     for s in raw_datasets:
         logger.info(f"Dataset split: {s}")
