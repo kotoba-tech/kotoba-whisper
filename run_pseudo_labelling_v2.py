@@ -62,6 +62,10 @@ class ModelArguments:
         default=True,
         metadata={"help": "Whether to use one of the fast tokenizer (backed by the tokenizers library) or not."},
     )
+    attn_implementation: str = field(
+        default="sdpa",
+        metadata={"help": "Attention implementation."}
+    )
 
 
 @dataclass
@@ -101,10 +105,6 @@ class DataTrainingArguments:
     return_timestamps: bool = field(
         default=True,
         metadata={"help": "Whether to return the timestamps with the text."},
-    )
-    attn_implementation: str = field(
-        default="sdpa",
-        metadata={"help": "Attention implementation."}
     )
 
 

@@ -42,16 +42,16 @@ process_en_main () {
 #  rm -rf "${HOME}/.cache/huggingface/datasets/japanese-asr___en_asr.mls/${DATASET_CONFIG}"
 }
 
+# runpod_ada_1
+process_en_main "subset_3" 8 256
+# runpod_ada_2
+process_en_main "subset_1" 8 256
 # runpod_inference
 process_en_main "subset_2" 8 64
 # runpod_prep_2
 process_en_main "subset_0" 8 256
 # runpod_prep
 process_en_main "subset_9" 8 256
-# runpod_ada_1
-process_en_main "subset_3" 8 256
-# runpod_ada_2
-process_en_main "subset_1" 8 256
 
 for i in {0..3}
 do
