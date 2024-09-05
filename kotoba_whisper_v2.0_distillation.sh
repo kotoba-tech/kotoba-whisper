@@ -53,8 +53,6 @@ process_en_main "subset_3" 8 128
 # runpod_pre_5
 process_en_main "subset_1" 8 128
 
-
-
 for i in {0..9}
 do
   process_en_main "subset_${i}" 8 128

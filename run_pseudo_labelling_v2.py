@@ -34,7 +34,6 @@ from transformers.utils.versions import require_version
 os.environ['CURL_CA_BUNDLE'] = ''
 # disable warning message
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
-PREPROCESSING_ONLY = bool(int(os.getenv("PREPROCESSING_ONLY", 0)))
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
 check_min_version("4.34.0.dev0")
 require_version("datasets>=2.14.6", "To fix: `pip install --upgrade datasets`")
