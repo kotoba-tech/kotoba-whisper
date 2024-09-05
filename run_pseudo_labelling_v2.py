@@ -35,7 +35,6 @@ os.environ['CURL_CA_BUNDLE'] = ''
 # disable warning message
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 PREPROCESSING_ONLY = bool(int(os.getenv("PREPROCESSING_ONLY", 0)))
-SKIP_POINTER = int(os.getenv("SKIP_POINTER", 0))
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
 check_min_version("4.34.0.dev0")
 require_version("datasets>=2.14.6", "To fix: `pip install --upgrade datasets`")
@@ -290,8 +289,6 @@ def main():
     size = len(raw_datasets[data_args.dataset_split])
     chunk_size = int(size/data_args.num_chunks)
     for chunk_id, start in enumerate(range(0, size, chunk_size)):
-        if chunk_id < SKIP_POINTER:
-            continue
         end = min(start + chunk_size, size)
         logger.info(f"Processing chunk {chunk_id}: {start}->{end}")
         raw_datasets_tmp = raw_datasets[data_args.dataset_split].select(list(range(start, end)))
