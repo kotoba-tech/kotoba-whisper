@@ -172,10 +172,10 @@ distillation () {
     --wandb_project "wandb.${HF_MODEL_ALIAS}" \
     --gradient_checkpointing \
     --freeze_encoder \
-    --push_to_hub \
     --do_train \
     --overwrite_output_dir \
-    --num_train_epochs 1
+    --num_train_epochs 1 \
+    --push_to_hub
 }
 
 git clone "https://huggingface.co/${HF_ORG}/${HF_MODEL_ALIAS}"
@@ -183,13 +183,12 @@ python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DAT
 for i in {1..8}
 do
   echo "EPOCH ${i}"
-#  for s in {0..8}
-  for s in {1..8}
+  for s in {0..8}
   do
     if [ ${s} = 8 ]; then
       python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_0')""" &
     else
-      python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_${(( s + 1 ))}')""" &
+      python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_$(( s + 1 ))')""" &
     fi
     if [ ${i} -eq 1 ] && [ ${s} = 0 ]; then
       # First distillation process needs to start from the local init file with non-zero warm up step.
@@ -197,7 +196,7 @@ do
     else
       distillation "${HF_MODEL_ALIAS}" "split_${s}" "0"
     fi
-#    rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized/split_${s}"
+    rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized/split_${s}"
   done
 done
 
