@@ -149,7 +149,6 @@ distillation () {
   echo "MODEL_NAME  : ${MODEL_NAME}"
   echo "MODEL_CONFIG: ${MODEL_CONFIG}"
   echo "WARMUP_STEPS: ${WARMUP_STEPS}"
-  python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', '${MODEL_CONFIG}')"""
   accelerate launch run_distillation.py \
     --model_name_or_path "${MODEL_NAME}" \
     --teacher_model_name_or_path "${TEACHER_MODEL}" \
@@ -177,24 +176,28 @@ distillation () {
     --do_train \
     --overwrite_output_dir \
     --num_train_epochs 1
-#  rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized/${MODEL_CONFIG}"
 }
 
-
+git clone "https://huggingface.co/${HF_ORG}/${HF_MODEL_ALIAS}"
+python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_0')"""
 for i in {1..8}
 do
   echo "EPOCH ${i}"
-  for s in {0..8}
+#  for s in {0..8}
+  for s in {1..8}
   do
+    if [ ${s} = 8 ]; then
+      python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_0')""" &
+    else
+      python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_${(( s + 1 ))}')""" &
+    fi
     if [ ${i} -eq 1 ] && [ ${s} = 0 ]; then
       # First distillation process needs to start from the local init file with non-zero warm up step.
-      git clone "https://huggingface.co/${HF_ORG}/${HF_MODEL_ALIAS}"
-#      yes | cp run_distillation.py ${HF_MODEL_ALIAS}
-#      cd ${HF_MODEL_ALIAS}
-      distillation "${HF_MODEL_ALIAS}/${HF_MODEL_ALIAS}-init" "split_0" "${WARMUP_STEPS}"
+      distillation "${HF_MODEL_ALIAS}/${HF_MODEL_ALIAS}-init" "split_${s}" "${WARMUP_STEPS}"
     else
-      distillation "${HF_ORG}/${HF_MODEL_ALIAS}" "split_${s}" "0"
+      distillation "${HF_MODEL_ALIAS}" "split_${s}" "0"
     fi
+#    rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized/split_${s}"
   done
 done
 

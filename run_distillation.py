@@ -754,12 +754,13 @@ def main():
 
                         if cur_step == total_train_steps:
                             # un-wrap student model for save
+                            logger.info("unwrap model")
                             student_model = accelerator.unwrap_model(student_model)
+                            logger.info("save_pretrained for the final model")
                             student_model.save_pretrained(training_args.output_dir)
-                            # re-wrap student model for final eval
-                            student_model = accelerator.prepare(student_model)
 
                         if training_args.push_to_hub:
+                            logger.info("push_to_hub final model")
                             repo.push_to_hub(
                                 commit_message=f"Saving train state of step {cur_step}",
                                 blocking=False,
@@ -773,6 +774,7 @@ def main():
         if not continue_training:
             break
 
+    logger.info("close the training job")
     accelerator.end_training()
 
 
