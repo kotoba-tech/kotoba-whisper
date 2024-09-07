@@ -762,7 +762,8 @@ def main():
                         if training_args.push_to_hub:
                             logger.info("push_to_hub final model")
                             repo.push_to_hub(
-                                commit_message=f"Saving train state of step {cur_step}",
+                                commit_message=f"Saving train state of step {cur_step}: "
+                                               f"{data_args.train_dataset_name}-{data_args.train_dataset_config_name}",
                                 blocking=False,
                             )
 
