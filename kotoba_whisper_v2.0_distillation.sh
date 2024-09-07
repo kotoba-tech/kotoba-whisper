@@ -45,13 +45,19 @@ process_en_main () {
 # runpod_pre_1
 process_en_main "subset_0" 8 32
 # runpod_pre_2
-process_en_main "subset_2" 8 32
+#process_en_main "subset_2" 8 32
+process_en_main "subset_6" 8 32
 # runpod_pre_3
 process_en_main "subset_9" 8 32
 # runpod_pre_4
 process_en_main "subset_3" 8 128
 # runpod_pre_5
 process_en_main "subset_1" 8 128
+# runpod_pre_6
+process_en_main "subset_4" 8 32
+# runpod_pre_7
+process_en_main "subset_5" 8 32
+
 
 for i in {0..9}
 do
@@ -70,7 +76,7 @@ process_ja_main () {
     --attn_implementation "sdpa" \
     --dataset_name "japanese-asr/ja_asr.reazon_speech_all" \
     --dataset_split "train" \
-    --num_chunks 10 \
+    --num_chunks 15 \
     --text_column_name "transcription,transcription/en_gpt3.5" \
     --language "ja,en" \
     --task "transcribe,translate" \

@@ -146,6 +146,7 @@ distillation () {
   MODEL_NAME=${1}
   MODEL_CONFIG=${2}
   WARMUP_STEPS=${3}
+  SEED=${4}
   echo "MODEL_NAME  : ${MODEL_NAME}"
   echo "MODEL_CONFIG: ${MODEL_CONFIG}"
   echo "WARMUP_STEPS: ${WARMUP_STEPS}"
@@ -158,11 +159,11 @@ distillation () {
     --attn_implementation "flash_attention_2" \
     --max_label_length 128 \
     --train_split_name "train" \
-    --save_steps 2500 \
+    --save_steps 5000 \
     --warmup_steps "${WARMUP_STEPS}" \
     --learning_rate 0.0001 \
     --lr_scheduler_type "constant_with_warmup" \
-    --logging_steps 50 \
+    --logging_steps 100 \
     --save_total_limit 1 \
     --per_device_train_batch_size 8 \
     --gradient_accumulation_steps 4 \
@@ -175,31 +176,42 @@ distillation () {
     --do_train \
     --overwrite_output_dir \
     --num_train_epochs 1 \
+    --seed ${SEED} \
     --push_to_hub
 }
 
 git clone "https://huggingface.co/${HF_ORG}/${HF_MODEL_ALIAS}"
-python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_0')"""
-for i in {1..8}
+python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_0', num_proc=16)"""
+for i in {2..8}
 do
   echo "EPOCH ${i}"
   for s in {0..8}
   do
     if [ ${s} = 8 ]; then
-      python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_0')""" &
+      python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_0', num_proc=16)""" &
     else
-      python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_$(( s + 1 ))')""" &
+      python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_$(( s + 1 ))', num_proc=16)""" &
     fi
+    rm -rf ${HF_MODEL_ALIAS}/checkpoint-*
     if [ ${i} -eq 1 ] && [ ${s} = 0 ]; then
-      # First distillation process needs to start from the local init file with non-zero warm up step.
-      distillation "${HF_MODEL_ALIAS}/${HF_MODEL_ALIAS}-init" "split_${s}" "${WARMUP_STEPS}"
+      distillation "${HF_MODEL_ALIAS}/${HF_MODEL_ALIAS}-init" "split_${s}" "${WARMUP_STEPS}" ${i}
+      rm -rf "${HF_MODEL_ALIAS}/${HF_MODEL_ALIAS}-init"
     else
-      distillation "${HF_MODEL_ALIAS}" "split_${s}" "0"
+      distillation "${HF_MODEL_ALIAS}" "split_${s}" "0" ${i}
     fi
     rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized/split_${s}"
   done
 done
 
+
+python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_7', num_proc=16)"""
+for s in {5..8}
+do
+  python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_$(( s + 1 ))', num_proc=16)""" &
+  rm -rf ${HF_MODEL_ALIAS}/checkpoint-*
+  distillation "${HF_MODEL_ALIAS}" "split_${s}" "0" ${i}
+  rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized/split_${s}"
+done
 
 ##########################
 # Evaluate Student Model #
