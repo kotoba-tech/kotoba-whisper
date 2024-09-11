@@ -2,10 +2,9 @@
 ##########
 # Config #
 ##########
-#WER_THRESHOLD=10.0  # WER threshold applied at data filtering.
+WER_THRESHOLD=10.0  # WER threshold applied at data filtering.
 TEACHER_MODEL="openai/whisper-large-v3"  # Teacher model for the distillation.
 HF_ORG="japanese-asr"  # HuggingFace organization to push the artifacts.
-#HF_DATASET_ALIAS="whisper_transcriptions.reazonspeech_mlr.${DATASET_TYPE}"  # Dataset alias used when pushing datasets.
 #HF_MODEL_ALIAS="distil-whisper-large-v3-ja-reazonspeech-${DATASET_TYPE}"  # Model alias used when pushing models.
 #WARMUP_STEPS=500  # Warmup step.
 

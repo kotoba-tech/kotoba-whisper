@@ -259,7 +259,7 @@ def main():
         )
         dataset = dataset.filter(
             function=is_labels_in_length_range,
-            input_columns=dataset_features,
+            input_columns=columns,
             num_proc=arg.preprocessing_num_workers,
             desc=f"filtering train dataset"
         )
