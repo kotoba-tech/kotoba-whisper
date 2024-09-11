@@ -123,25 +123,27 @@ do
     --text_column_label "transcription" \
     --wer_threshold ${WER_THRESHOLD} \
     --preprocessing_num_workers 64 \
-    --preprocessing_batch_size 64
+    --preprocessing_batch_size 64 \
+    --skip_logmel
+  python run_data_filtering_v2.py \
+    -d "${HF_ORG}/whisper_transcriptions.mls.wer_${WER_THRESHOLD}" \
+    --dataset_config_name "subset_${DATASET_CHUNK_ID}" \
+    --task_filtering "transcribe" \
+    --language_filtering "en" \
+    --task "transcribe,translate,transcribe,translate" \
+    --language "en,ja,en,ja" \
+    --text_column_name "transcription,transcription/ja_gpt3.5,whisper_transcription,whisper_transcription/ja_gpt3.5" \
+    --text_column_prediction "whisper_transcription" \
+    --text_column_label "transcription" \
+    --wer_threshold ${WER_THRESHOLD} \
+    --preprocessing_num_workers 64 \
+    --preprocessing_batch_size 64 \
+    --skip_filtering
   rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___whisper_transcriptions.mls/subset_${DATASET_CHUNK_ID}"
+  rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___whisper_transcriptions.mls.wer_${WER_THRESHOLD}/subset_${DATASET_CHUNK_ID}"
   rm -rf "${HOME}/.cache/huggingface/datasets/downloads"
 done
 
-
-for DATASET_CHUNK_ID in {1..82}
-do
-  python run_data_filtering_v2.py \
-    -d "${HF_ORG}/${HF_DATASET_ALIAS}_${DATASET_CHUNK_ID}.wer_${WER_THRESHOLD}" \
-    --dataset_config_name "${DATASET_TYPE}" \
-    --wer_threshold ${WER_THRESHOLD} \
-    --text_column_name "transcription" \
-    --preprocessing_num_workers 1 \
-    --preprocessing_batch_size 64 \
-    --max_label_length 128 \
-    --skip_filtering
-  rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___whisper_transcriptions.reazonspeech.all_${DATASET_CHUNK_ID}.wer_${WER_THRESHOLD}"
-done
 
 #################
 # Merge Dataset #

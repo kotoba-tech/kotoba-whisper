@@ -273,7 +273,6 @@ def main():
             return batch
 
         dataset = dataset.map(
-            keep_in_memory=True,
             function=log_mel_transformation,
             remove_columns=[arg.audio_column_name, "input_length"],
             batched=True,
