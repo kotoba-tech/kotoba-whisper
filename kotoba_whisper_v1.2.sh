@@ -135,9 +135,6 @@ python create_student_model.py \
 git add . && git commit -m "init" && git push
 cd ../
 
-
-# UNTIL HERE DONE
-# FROM HERE TODO
 ##########################
 # Training Student Model #
 ##########################
@@ -165,8 +162,8 @@ distillation () {
     --lr_scheduler_type "constant_with_warmup" \
     --logging_steps 100 \
     --save_total_limit 1 \
-    --per_device_train_batch_size 8 \
-    --gradient_accumulation_steps 4 \
+    --per_device_train_batch_size 32 \
+    --gradient_accumulation_steps 1 \
     --preprocessing_num_workers 8 \
     --dataloader_num_workers 1 \
     --output_dir "./${HF_MODEL_ALIAS}" \
@@ -182,6 +179,7 @@ distillation () {
 
 git clone "https://huggingface.co/${HF_ORG}/${HF_MODEL_ALIAS}"
 python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_0', num_proc=16)"""
+#for i in {1..8}
 for i in {2..8}
 do
   echo "EPOCH ${i}"
@@ -200,18 +198,26 @@ do
       distillation "${HF_MODEL_ALIAS}" "split_${s}" "0" ${i}
     fi
     rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized/split_${s}"
+    rm -rf "${HOME}/.cache/huggingface/datasets/downloads"
   done
 done
 
-
-python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_7', num_proc=16)"""
-for s in {5..8}
+i=4
+echo "EPOCH ${i}"
+python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_0', num_proc=16)"""
+for s in {0..8}
 do
-  python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_$(( s + 1 ))', num_proc=16)""" &
-  rm -rf ${HF_MODEL_ALIAS}/checkpoint-*
+  if [ ${s} = 8 ]; then
+    python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_0', num_proc=16)""" &
+  else
+    python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_$(( s + 1 ))', num_proc=16)""" &
+  fi
   distillation "${HF_MODEL_ALIAS}" "split_${s}" "0" ${i}
+  rm -rf ${HF_MODEL_ALIAS}/checkpoint-*
   rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized/split_${s}"
+  rm -rf "${HOME}/.cache/huggingface/datasets/downloads"
 done
+
 
 ##########################
 # Evaluate Student Model #
@@ -219,6 +225,11 @@ done
 for DATA in "japanese-asr/ja_asr.jsut_basic5000" "japanese-asr/ja_asr.reazonspeech_test" "japanese-asr/ja_asr.common_voice_8_0"
 do
   python run_short_form_eval.py -m "${HF_ORG}/${HF_MODEL_ALIAS}" -d "${DATA}" -b 512
+done
+
+for DATA in "japanese-asr/ja_asr.jsut_basic5000" "japanese-asr/ja_asr.reazonspeech_test" "japanese-asr/ja_asr.common_voice_8_0"
+do
+  python run_short_form_eval.py -m "asahi417/distil-whisper-large-v3-ja-reazonspeech-all" -d "${DATA}" -b 512
 done
 
 

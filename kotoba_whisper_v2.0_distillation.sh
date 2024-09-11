@@ -9,8 +9,8 @@ HF_ORG="japanese-asr"  # HuggingFace organization to push the artifacts.
 #HF_MODEL_ALIAS="distil-whisper-large-v3-ja-reazonspeech-${DATASET_TYPE}"  # Model alias used when pushing models.
 #WARMUP_STEPS=500  # Warmup step.
 
-#huggingface-cli login  # Configure huggingface.
-#accelerate config  # Configure accelerate.
+huggingface-cli login  # Configure huggingface.
+accelerate config  # Configure accelerate.
 
 ################################
 # Preprocess Dataset (English) #
@@ -38,31 +38,29 @@ process_en_main () {
     --overwrite_output_dir \
     --output_dir "output.en_asr.mls__${DATASET_CONFIG}" \
     --hub_model_id "${HF_ORG}/whisper_transcriptions.mls"
-#  rm -rf "output.en_asr.mls__${DATASET_CONFIG}"
-#  rm -rf "${HOME}/.cache/huggingface/datasets/japanese-asr___en_asr.mls/${DATASET_CONFIG}"
+  rm -rf "output.en_asr.mls__${DATASET_CONFIG}"
+  rm -rf "${HOME}/.cache/huggingface/datasets/japanese-asr___en_asr.mls/${DATASET_CONFIG}"
 }
-
-# runpod_pre_1
-process_en_main "subset_0" 8 32
-# runpod_pre_2
-#process_en_main "subset_2" 8 32
-process_en_main "subset_6" 8 32
-# runpod_pre_3
-process_en_main "subset_9" 8 32
-# runpod_pre_4
-process_en_main "subset_3" 8 128
-# runpod_pre_5
-process_en_main "subset_1" 8 128
-# runpod_pre_6
-process_en_main "subset_4" 8 32
-# runpod_pre_7
-process_en_main "subset_5" 8 32
-
 
 for i in {0..9}
 do
-  process_en_main "subset_${i}" 8 128
+  process_en_main "subset_${i}" 8 32
 done
+
+# fix config name
+wget https://huggingface.co/datasets/${HF_ORG}/whisper_transcriptions.mls/raw/main/README.md
+```python
+import re
+
+with open('README.md', 'r') as f:
+    config = f.read()
+config_ids = sorted(set(re.findall(r"config_name: subset_[\S]*\n", config)))
+for n, i in enumerate(config_ids):
+  config = config.replace(i, f"config_name: subset_{n}\n")
+with open("README.md", "w") as f:
+  f.write(config)
+```
+
 
 #################################
 # Preprocess Dataset (Japanese) #
@@ -71,6 +69,7 @@ process_ja_main () {
   DATASET_CONFIG=${1}
   NUM_PROC=${2}
   BATCH=${3}
+  python -c """from datasets import load_dataset; load_dataset('japanese-asr/ja_asr.reazon_speech_all', '"${DATASET_CONFIG}"', num_proc=16)"""
   accelerate launch --multi_gpu run_pseudo_labelling_v2.py \
     --model_name_or_path "${TEACHER_MODEL}" \
     --attn_implementation "sdpa" \
@@ -92,41 +91,48 @@ process_ja_main () {
     --hub_model_id "${HF_ORG}/whisper_transcriptions.reazon_speech_all"
 }
 
+# runpod_pre_1
+process_ja_main "subset_13" 8 64
+# runpod_pre_3
+process_ja_main "subset_14" 8 32
+# runpod_pre_7
+process_ja_main "subset_10" 8 32
+# runpod_pre_9
+process_ja_main "subset_15" 8 32
+
 for i in {0..15}
 do
-  process_ja_main "subset_${i}" 8 128
+  process_ja_main "subset_${i}" 8 32
 done
 
 
 #####################
 # Filtering Dataset #
 #####################
-DATASET_TYPE="all"  # Dataset type alias.
-WARMUP_STEPS=500  # Warmup step.
-WER_THRESHOLD=10.0  # WER threshold applied at data filtering.
-TEACHER_MODEL="openai/whisper-large-v3"  # Teacher model for the distillation.
-HF_ORG="japanese-asr"  # HuggingFace organization to push the artifacts.
-HF_DATASET_ALIAS="whisper_transcriptions.reazonspeech.${DATASET_TYPE}"  # Dataset alias used when pushing datasets.
-HF_MODEL_ALIAS="distil-whisper-large-v3-ja-reazonspeech-${DATASET_TYPE}"  # Model alias used when pushing models.
-
-for DATASET_CHUNK_ID in {1..82}
+# English
+for DATASET_CHUNK_ID in {0..138}
 do
-  python run_data_filtering.py \
-    -d "${HF_ORG}/${HF_DATASET_ALIAS}_${DATASET_CHUNK_ID}" \
-    --dataset_config_name "${DATASET_TYPE}" \
+  python run_data_filtering_v2.py \
+    -d "${HF_ORG}/whisper_transcriptions.mls" \
+    --dataset_config_name "subset_${DATASET_CHUNK_ID}" \
+    --task_filtering "transcribe" \
+    --language_filtering "en" \
+    --task "transcribe,translate,transcribe,translate" \
+    --language "en,ja,en,ja" \
+    --text_column_name "transcription,transcription/ja_gpt3.5,whisper_transcription,whisper_transcription/ja_gpt3.5" \
+    --text_column_prediction "whisper_transcription" \
+    --text_column_label "transcription" \
     --wer_threshold ${WER_THRESHOLD} \
-    --text_column_name "transcription" \
-    --preprocessing_num_workers 1 \
-    --preprocessing_batch_size 64 \
-    --max_label_length 128 \
-    --skip_logmel
-  rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___whisper_transcriptions.reazonspeech.all_${DATASET_CHUNK_ID}*"
+    --preprocessing_num_workers 8 \
+    --preprocessing_batch_size 64
+  rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___whisper_transcriptions.mls/subset_${DATASET_CHUNK_ID}"
+  rm -rf "${HOME}/.cache/huggingface/datasets/downloads"
 done
 
 
 for DATASET_CHUNK_ID in {1..82}
 do
-  python run_data_filtering.py \
+  python run_data_filtering_v2.py \
     -d "${HF_ORG}/${HF_DATASET_ALIAS}_${DATASET_CHUNK_ID}.wer_${WER_THRESHOLD}" \
     --dataset_config_name "${DATASET_TYPE}" \
     --wer_threshold ${WER_THRESHOLD} \
