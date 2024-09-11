@@ -122,7 +122,7 @@ do
     --text_column_prediction "whisper_transcription" \
     --text_column_label "transcription" \
     --wer_threshold ${WER_THRESHOLD} \
-    --preprocessing_num_workers 8 \
+    --preprocessing_num_workers 64 \
     --preprocessing_batch_size 64
   rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___whisper_transcriptions.mls/subset_${DATASET_CHUNK_ID}"
   rm -rf "${HOME}/.cache/huggingface/datasets/downloads"

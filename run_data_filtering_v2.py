@@ -244,25 +244,19 @@ def main():
         # Filter training data with inputs longer than `max_input_length`
         max_input_length = int(arg.max_duration_in_seconds * feature_extractor.sampling_rate)
         min_input_length = int(arg.min_duration_in_seconds * feature_extractor.sampling_rate)
-
-        def is_audio_in_length_range(length):
-            return min_input_length < length < max_input_length
-
-        def is_labels_in_length_range(labels):
-            return any(0 < len(x) <= arg.max_label_length for x in labels)
-
         dataset = dataset.filter(
-            function=is_audio_in_length_range,
+            function=lambda x: min_input_length < x < max_input_length,
             input_columns=["input_length"],
             num_proc=arg.preprocessing_num_workers,
             desc="filtering train dataset by audio length"
         )
-        dataset = dataset.filter(
-            function=is_labels_in_length_range,
-            input_columns=columns,
-            num_proc=arg.preprocessing_num_workers,
-            desc=f"filtering train dataset"
-        )
+        for c in columns:
+            dataset = dataset.filter(
+                function=lambda x: 0 < len(x) <= arg.max_label_length,
+                input_columns=[c],
+                num_proc=arg.preprocessing_num_workers,
+                desc=f"filtering train dataset"
+            )
         arg.dataset_name = f"{arg.dataset_name}.wer_{arg.wer_threshold}"
         safe_push(DatasetDict({arg.split: dataset}), arg.dataset_name, arg.dataset_config_name)
 
