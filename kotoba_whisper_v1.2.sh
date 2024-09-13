@@ -202,7 +202,7 @@ do
   done
 done
 
-i=4
+i=5
 echo "EPOCH ${i}"
 python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_0', num_proc=16)"""
 for s in {0..8}

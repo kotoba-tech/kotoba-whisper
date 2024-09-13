@@ -14,7 +14,7 @@ import torch
 import torch.nn as nn
 from accelerate import Accelerator
 from accelerate.logging import get_logger
-from datasets import utils, DatasetDict, IterableDataset, load_dataset
+from datasets import utils, DatasetDict, IterableDataset, load_dataset, concatenate_datasets
 from huggingface_hub import Repository, create_repo
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -36,15 +36,11 @@ from transformers.utils.versions import require_version
 
 # https://stackoverflow.com/questions/71692354/facing-ssl-error-with-huggingface-pretrained-models
 os.environ['CURL_CA_BUNDLE'] = ''
-
 # disable warning message
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
-
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
 check_min_version("4.34.0.dev0")
-
 require_version("datasets>=2.14.6", "To fix: `pip install --upgrade datasets`")
-
 logger = get_logger(__name__)
 
 
@@ -61,42 +57,6 @@ class ModelArguments:
         default=None,
         metadata={"help": "Pretrained config name or path if not the same as model_name"},
     )
-    tokenizer_name: Optional[str] = field(
-        default=None,
-        metadata={"help": "Pretrained tokenizer name or path if not the same as model_name"},
-    )
-    feature_extractor_name: Optional[str] = field(
-        default=None,
-        metadata={"help": "feature extractor name or path if not the same as model_name"},
-    )
-    cache_dir: Optional[str] = field(
-        default=None,
-        metadata={"help": "Where to store the pretrained models downloaded from huggingface.co"},
-    )
-    use_fast_tokenizer: bool = field(
-        default=True,
-        metadata={"help": "Whether to use one of the fast tokenizer (backed by the tokenizers library) or not."},
-    )
-    model_revision: str = field(
-        default="main",
-        metadata={"help": "The specific model version to use (can be a branch name, tag name or commit id)."},
-    )
-    subfolder: str = field(
-        default="",
-        metadata={
-            "help": "In case the relevant files are located inside a subfolder of the model repo on huggingface.co, you can"
-            "specify the folder name here."
-        },
-    )
-    token: str = field(
-        default=None,
-        metadata={
-            "help": (
-                "The token to use as HTTP bearer authorization for remote files. If not specified, will use the token "
-                "generated when running `huggingface-cli login` (stored in `~/.huggingface`)."
-            )
-        },
-    )
     attn_implementation: str = field(default="sdpa", metadata={"help": "Attention implementation."})
 
 
@@ -104,28 +64,10 @@ class ModelArguments:
 class DataTrainingArguments:
     """Arguments pertaining to what data we are going to input our model for training and eval."""
     train_dataset_name: str = field(
-        default=None,
-        metadata={
-            "help": "The name of the training dataset to use (via the datasets library). Load and combine "
-                    "multiple datasets by separating dataset ids by a '+' symbol. For example, to load LibriSpeech "
-                    "and Common Voice, set `train_dataset_name='librispeech_asr+common_voice'`."
-        },
+        metadata={"help": "The name of the training dataset to use (via the datasets library)."},
     )
-    train_dataset_config_name: Optional[str] = field(
-        default=None,
-        metadata={
-            "help": "The configuration name of the training dataset to use (via the datasets library). Load and combine "
-            "multiple datasets by separating dataset configs by a '+' symbol. Note that the order of the configs should "
-            "match the order of the datasets."
-        },
-    )
-    dataset_cache_dir: Optional[str] = field(
-        default=None,
-        metadata={"help": "Path to cache directory for saving and loading datasets"},
-    )
-    overwrite_cache: bool = field(
-        default=False,
-        metadata={"help": "Overwrite the cached training and evaluation sets"},
+    train_dataset_config_name: str = field(
+        metadata={"help": "The configuration name of the training dataset to use (via the datasets library)."},
     )
     preprocessing_num_workers: Optional[int] = field(
         default=None,
@@ -137,31 +79,23 @@ class DataTrainingArguments:
     )
     train_split_name: str = field(
         default="train",
-        metadata={
-            "help": "The name of the training data set split to use (via the datasets library). Defaults to 'train'"
-        },
+        metadata={"help": "The name of the training data set split to use (via the datasets library). Defaults to 'train'"},
     )
     timestamp_probability: float = field(
-        default=0.2, metadata={"help": "Probability for training on timestamped tokens if the data contains it."}
+        default=0.2,
+        metadata={"help": "Probability for training on timestamped tokens if the data contains it."}
     )
     return_timestamps: bool = field(
-        default=False, metadata={"help": "Whether or not to predict timestamps in the generation step."}
+        default=False,
+        metadata={"help": "Whether or not to predict timestamps in the generation step."}
     )
     language: str = field(
         default=None,
-        metadata={
-            "help": (
-                "Language for multilingual distillation. This argument should be set for multilingual distillation "
-                "only. For English speech recognition, it should be left as `None`."
-            )
-        },
+        metadata={"help": "Language for multilingual distillation."},
     )
     task: str = field(
         default="transcribe",
-        metadata={
-            "help": "Task, either `transcribe` for speech recognition or `translate` for speech translation."
-            "This argument should be set for multilingual distillation only. For English speech recognition, it should be left as `None`."
-        },
+        metadata={"help": "Task, either `transcribe` for speech recognition or `translate` for speech translation."},
     )
     wandb_project: str = field(
         default="distil-whisper",
@@ -171,17 +105,9 @@ class DataTrainingArguments:
 
 @dataclass
 class DistillationTrainingArguments(Seq2SeqTrainingArguments):
-    freeze_encoder: Optional[bool] = field(
-        default=False,
-        metadata={
-            "help": (
-                "Whether to freeze the entire encoder model. Only recommended when the entire encoder has been "
-                "copied from the teacher model."
-            )
-        },
-    )
     temperature: Optional[float] = field(
-        default=2.0, metadata={"help": "Temperature to anneal the logits when computing the softmax."}
+        default=2.0,
+        metadata={"help": "Temperature to anneal the logits when computing the softmax."}
     )
     kl_weight: Optional[float] = field(
         default=1.0,
@@ -229,21 +155,15 @@ class DataCollatorSpeechSeq2SeqWithPadding:
     max_target_length: Optional[int] = None
 
     def __call__(self, features: List[Dict[str, Union[List[int], np.ndarray]]]) -> Dict[str, np.ndarray]:
-        # split inputs and labels since they have to be of different lengths and need
-        # different padding methods
-        model_input_name = self.processor.model_input_names[0]
+        # split inputs and labels since they have to be of different lengths and need different padding methods
+        model_input_name = self.processor.model_input_names[0]  # "input_features"
 
         # dataloader returns a list of features which we convert to a dict
         input_features = {model_input_name: [feature[model_input_name] for feature in features]}
         label_features = {"input_ids": [feature["labels"] for feature in features]}
 
         # reformat list to dict and set to pytorch format
-        batch = self.processor.feature_extractor.pad(
-            input_features,
-            padding=self.input_padding,
-            return_tensors="pt",
-        )
-
+        batch = self.processor.feature_extractor.pad(input_features, padding=self.input_padding, return_tensors="pt")
         labels_batch = self.processor.tokenizer.pad(
             label_features,
             max_length=self.max_target_length,
@@ -268,28 +188,7 @@ class DataCollatorSpeechSeq2SeqWithPadding:
 
         batch["labels"] = labels
         batch["decoder_input_ids"] = decoder_input_ids
-
         return batch
-
-
-def log_metric(
-    accelerator,
-    metrics: Dict,
-    train_time: float,
-    step: int,
-    epoch: int,
-    learning_rate: float = None,
-    prefix: str = "train",
-):
-    """Helper function to log all training/evaluation metrics with the correct prefixes and styling."""
-    log_metrics = {}
-    for k, v in metrics.items():
-        log_metrics[f"{prefix}/{k}"] = v
-    log_metrics[f"{prefix}/time"] = train_time
-    log_metrics[f"{prefix}/epoch"] = epoch
-    if learning_rate is not None:
-        log_metrics[f"{prefix}/learning_rate"] = learning_rate
-    accelerator.log(log_metrics, step=step)
 
 
 def get_layers_to_supervise(student_layers: int, teacher_layers: int) -> Dict:
@@ -309,56 +208,12 @@ def get_layers_to_supervise(student_layers: int, teacher_layers: int) -> Dict:
     return layer_map
 
 
-def sorted_checkpoints(output_dir=None, checkpoint_prefix="checkpoint") -> List[str]:
-    """Helper function to sort saved checkpoints from oldest to newest."""
-    ordering_and_checkpoint_path = []
-
-    glob_checkpoints = [str(x) for x in Path(output_dir).glob(f"{checkpoint_prefix}-*") if os.path.isdir(x)]
-
-    for path in glob_checkpoints:
-        regex_match = re.match(f".*{checkpoint_prefix}-([0-9]+)", path)
-        if regex_match is not None and regex_match.groups() is not None:
-            ordering_and_checkpoint_path.append((int(regex_match.groups()[0]), path))
-
-    checkpoints_sorted = sorted(ordering_and_checkpoint_path)
-    checkpoints_sorted = [checkpoint[1] for checkpoint in checkpoints_sorted]
-    return checkpoints_sorted
-
-
-def rotate_checkpoints(save_total_limit=None, output_dir=None, checkpoint_prefix="checkpoint") -> None:
-    """Helper function to delete old checkpoints."""
-    if save_total_limit is None or save_total_limit <= 0:
-        return
-    # Check if we should delete older checkpoint(s)
-    checkpoints_sorted = sorted_checkpoints(output_dir=output_dir, checkpoint_prefix=checkpoint_prefix)
-    if len(checkpoints_sorted) <= save_total_limit:
-        return
-
-    number_of_checkpoints_to_delete = max(0, len(checkpoints_sorted) - save_total_limit)
-    checkpoints_to_be_deleted = checkpoints_sorted[:number_of_checkpoints_to_delete]
-    for checkpoint in checkpoints_to_be_deleted:
-        logger.info(f"Deleting older checkpoint [{checkpoint}] due to args.save_total_limit")
-        shutil.rmtree(checkpoint, ignore_errors=True)
-
 
 _RE_CHECKPOINT = re.compile(r"^checkpoint-(\d+)-epoch-(\d+)$")
 
 
-def get_last_checkpoint(folder):
-    content = os.listdir(folder)
-    checkpoints = [
-        path
-        for path in content
-        if _RE_CHECKPOINT.search(path) is not None and os.path.isdir(os.path.join(folder, path))
-    ]
-    if len(checkpoints) == 0:
-        return
-    return os.path.join(folder, max(checkpoints, key=lambda x: int(_RE_CHECKPOINT.search(x).groups()[0])))
-
-
-def get_parameter_names(model, forbidden_layer_types, forbidden_module=None):
-    """
-    Returns the names of the model parameters that are not inside a forbidden layer or forbidden module.
+def get_parameter_names(model, forbidden_layer_types, forbidden_module):
+    """Returns the names of the model parameters that are not inside a forbidden layer or forbidden module.
     Can be used to get a subset of parameter names for decay masks, or to exclude parameters from an optimiser
     (e.g. if the module is frozen).
     """
@@ -407,20 +262,7 @@ def main():
         utils.logging.set_verbosity_error()
     logger.info("Training/evaluation parameters %s", training_args)
 
-    # 4. Detecting last checkpoint and eventually continue from last checkpoint
     last_checkpoint = None
-    if os.path.isdir(training_args.output_dir) and training_args.do_train and not training_args.overwrite_output_dir:
-        last_checkpoint = get_last_checkpoint(training_args.output_dir)
-        if last_checkpoint is None and len(os.listdir(training_args.output_dir)) > 0:
-            raise ValueError(
-                f"Output directory ({training_args.output_dir}) already exists and is not empty. "
-                "Use --overwrite_output_dir to overcome."
-            )
-        elif last_checkpoint is not None and training_args.resume_from_checkpoint is None:
-            logger.info(
-                f"Checkpoint detected, resuming training at {last_checkpoint}. To avoid this behavior, change "
-                "the `--output_dir` or add `--overwrite_output_dir` to train from scratch."
-            )
 
     # 5. Handle the repository creation
     if accelerator.is_main_process:
@@ -441,70 +283,42 @@ def main():
     accelerator.wait_for_everyone()
 
     # 6. Load pretrained model, tokenizer, and feature extractor
-    feature_extractor = WhisperFeatureExtractor.from_pretrained(
-        (model_args.feature_extractor_name if model_args.feature_extractor_name else model_args.model_name_or_path),
-        cache_dir=model_args.cache_dir,
-        revision=model_args.model_revision,
-        token=model_args.token,
-    )
-    config = WhisperConfig.from_pretrained(
-        (model_args.config_name if model_args.config_name else model_args.model_name_or_path),
-        cache_dir=model_args.cache_dir,
-        revision=model_args.model_revision,
-        token=model_args.token,
-    )
-    tokenizer = WhisperTokenizerFast.from_pretrained(
-        (model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path),
-        cache_dir=model_args.cache_dir,
-        use_fast=model_args.use_fast_tokenizer,
-        revision=model_args.model_revision,
-        token=model_args.token,
-    )
+    feature_extractor = WhisperFeatureExtractor.from_pretrained(model_args.model_name_or_path)
+    config = WhisperConfig.from_pretrained(model_args.model_name_or_path)
+    tokenizer = WhisperTokenizerFast.from_pretrained(model_args.model_name_or_path, use_fast=True)
     # override timestamp tokens until tokenizer issues are fixed in transformers
     timestamps = [AddedToken("<|%.2f|>" % (i * 0.02), lstrip=False, rstrip=False) for i in range(1500 + 1)]
     tokenizer.add_tokens(timestamps)
     teacher_model = WhisperForConditionalGeneration.from_pretrained(
         model_args.teacher_model_name_or_path,
-        cache_dir=model_args.cache_dir,
-        token=model_args.token,
         low_cpu_mem_usage=True,
         torch_dtype=torch.bfloat16,
         attn_implementation=model_args.attn_implementation,
     )
+    assert hasattr(teacher_model.generation_config, "is_multilingual") and teacher_model.generation_config.is_multilingual
     student_model = WhisperForConditionalGeneration.from_pretrained(
         model_args.model_name_or_path,
         config=config,
-        cache_dir=model_args.cache_dir,
-        revision=model_args.model_revision,
-        subfolder=model_args.subfolder,
-        token=model_args.token,
         low_cpu_mem_usage=True,
         torch_dtype=torch.bfloat16,
         attn_implementation=model_args.attn_implementation,
     )
+    assert student_model.config.d_model == teacher_model.config.d_model
     if student_model.config.decoder_start_token_id is None or teacher_model.config.decoder_start_token_id is None:
         raise ValueError(
             f"Make sure that `config.decoder_start_token_id` is correctly defined for both the "
             f"student and teacher model. Got {student_model.config.decoder_start_token_id} for the "
             f"student and {teacher_model.config.decoder_start_token_id} for the teacher."
         )
-    share_hidden_states = training_args.freeze_encoder and student_model.config.d_model == teacher_model.config.d_model
     # enable gradient checkpointing if necessary
     if training_args.gradient_checkpointing:
         student_model.gradient_checkpointing_enable()
     # freeze student encoder if necessary
-    if training_args.freeze_encoder:
-        student_model.freeze_encoder()
-        student_model.model.encoder.gradient_checkpointing = False
-    if hasattr(teacher_model.generation_config, "is_multilingual") and teacher_model.generation_config.is_multilingual:
-        # We need to set the language and task ids for previously multilingual checkpoints
-        tokenizer.set_prefix_tokens(language=data_args.language, task=data_args.task, predict_timestamps=False)
-        student_model.generation_config.update(**{"language": data_args.language, "task": data_args.task})
-    elif data_args.language is not None:
-        raise ValueError(
-            "Setting language token for an English-only checkpoint is not permitted. The language argument should "
-            "only be set for multilingual checkpoints."
-        )
+    student_model.freeze_encoder()
+    student_model.model.encoder.gradient_checkpointing = False
+    # We need to set the language and task ids for previously multilingual checkpoints
+    tokenizer.set_prefix_tokens(language=data_args.language, task=data_args.task, predict_timestamps=False)
+    student_model.generation_config.update(**{"language": data_args.language, "task": data_args.task})
 
     # 7. Create a single speech processor - make sure all processes wait until data is saved
     if accelerator.is_main_process:
@@ -517,19 +331,18 @@ def main():
 
     # 8. Preprocessing the datasets: we need to read the audio files as arrays and tokenize the targets.
     set_seed(training_args.seed)
-    training_datasets = DatasetDict(
-        {
-            "train": load_dataset(
+    training_datasets = []
+    for single_config in data_args.train_dataset_config_name.split(","):
+        training_datasets.append(
+            load_dataset(
                 data_args.train_dataset_name,
-                data_args.train_dataset_config_name,
+                single_config,
                 split=data_args.train_split_name,
                 trust_remote_code=True,
-                cache_dir=data_args.dataset_cache_dir,
-                token=model_args.token,
                 num_proc=data_args.preprocessing_num_workers
             )
-        }
-    )
+        )
+    training_datasets = concatenate_datasets(training_datasets)
     return_timestamps = data_args.return_timestamps if data_args.timestamp_probability > 0 else False
     decoder_start_token_id = student_model.config.decoder_start_token_id  # <|startoftranscript|>
     decoder_prev_token_id = tokenizer.all_special_ids[-3]  # <|startofprev|>
@@ -538,24 +351,14 @@ def main():
     per_device_train_batch_size = int(training_args.per_device_train_batch_size)
     train_batch_size = per_device_train_batch_size * accelerator.num_processes
     gradient_accumulation_steps = int(training_args.gradient_accumulation_steps)
-    if training_args.max_steps < 0:
-        num_epochs = int(training_args.num_train_epochs)
-        steps_per_epoch = len(training_datasets["train"]) // (train_batch_size * gradient_accumulation_steps)
-        total_train_steps = steps_per_epoch * num_epochs
-    elif training_args.max_steps > 0:
-        logger.info("max_steps is given, it will override any value given in num_train_epochs")
-        total_train_steps = int(training_args.max_steps)
-        # Setting a very large number of epochs so we go as many times as necessary over the iterator.
-        num_epochs = sys.maxsize
-        steps_per_epoch = total_train_steps
-    else:
-        raise ValueError("max_steps must be specified when training with a streaming (iterable) dataset")
+    steps_per_epoch = len(training_datasets) // (train_batch_size * gradient_accumulation_steps)
+    total_train_steps = steps_per_epoch * training_args.num_train_epochs
 
     # 10. Define optimizer, LR scheduler, collator
     decay_parameters = get_parameter_names(
         student_model,
         [nn.LayerNorm],
-        forbidden_module=[student_model.model.encoder] if training_args.freeze_encoder else None,
+        forbidden_module=[student_model.model.encoder],
     )
     decay_parameters = [name for name in decay_parameters if "bias" not in name]
     optimizer_grouped_parameters = [
@@ -581,10 +384,7 @@ def main():
         num_warmup_steps=training_args.warmup_steps * accelerator.num_processes,
         num_training_steps=total_train_steps * accelerator.num_processes,
     )
-    if data_args.max_label_length is not None:
-        max_label_length = data_args.max_label_length
-    else:
-        max_label_length = student_model.config.max_length
+    max_label_length = data_args.max_label_length if data_args.max_label_length else student_model.config.max_length
     data_collator = DataCollatorSpeechSeq2SeqWithPadding(
         processor=processor,
         decoder_start_token_id=decoder_start_token_id,
@@ -601,9 +401,8 @@ def main():
     else:
         num_beams = getattr(student_model.generation_config, "num_beams", 1)
     gen_kwargs = {"max_length": max_label_length, "num_beams": num_beams, "return_timestamps": return_timestamps}
-    if hasattr(teacher_model.generation_config, "is_multilingual") and teacher_model.generation_config.is_multilingual:
-        # forcing the language and task tokens helps multilingual models in their generations
-        gen_kwargs.update({"language": data_args.language, "task": data_args.task})
+    # forcing the language and task tokens helps multilingual models in their generations
+    gen_kwargs.update({"language": data_args.language, "task": data_args.task})
 
     # 12. Prepare everything with accelerate
     student_model, teacher_model, optimizer, lr_scheduler = accelerator.prepare(
@@ -626,14 +425,10 @@ def main():
         teacher_model.eval()
         student_outputs = student_model(**batch)
         with torch.no_grad():
-            if share_hidden_states:
-                # if the student and teacher share the same frozen encoder then we don't have to recompute the
-                # encoder hidden-states for the teacher model, we can just re-use from the student
-                encoder_outputs = BaseModelOutput(student_outputs.encoder_last_hidden_state)
-                teacher_outputs = teacher_model(encoder_outputs=encoder_outputs, labels=batch["labels"])
-            else:
-                # do the full forward pass for the teacher model (encoder + decoder)
-                teacher_outputs = teacher_model(**batch)
+            # if the student and teacher share the same frozen encoder then we don't have to recompute the
+            # encoder hidden-states for the teacher model, we can just re-use from the student
+            encoder_outputs = BaseModelOutput(student_outputs.encoder_last_hidden_state)
+            teacher_outputs = teacher_model(encoder_outputs=encoder_outputs, labels=batch["labels"])
         # CE (data) loss
         ce_loss = student_outputs.loss
         # rescale distribution by temperature to ensure gradients scale correctly
@@ -648,57 +443,22 @@ def main():
         return loss, metrics
 
     logger.info("***** Running training *****")
-    logger.info(f"  Num examples = {total_train_steps * train_batch_size * gradient_accumulation_steps}")
-    logger.info("  Instantaneous batch size per device =" f" {training_args.per_device_train_batch_size}")
-    logger.info("  Gradient accumulation steps =" f" {gradient_accumulation_steps}")
-    effective_batch_size = train_batch_size * gradient_accumulation_steps
-    logger.info(f"  Total train batch size (w. parallel & distributed) = {effective_batch_size}")
-    logger.info(f"  Total optimization steps = {total_train_steps}")
+    logger.info(f" Num examples = {total_train_steps * train_batch_size * gradient_accumulation_steps}")
+    logger.info(f" Instantaneous batch size per device = {training_args.per_device_train_batch_size}")
+    logger.info(f" Gradient accumulation steps = {gradient_accumulation_steps}")
+    logger.info(f" Effective batch size (w. parallel & distributed) = {train_batch_size * gradient_accumulation_steps}")
+    logger.info(f" Total optimization steps = {total_train_steps}")
 
     # ======================== Training ================================
-    train_time = 0
     train_start = time.time()
     steps_trained_progress_bar = tqdm(
         range(total_train_steps), desc="Train steps ... ", position=0, disable=not accelerator.is_local_main_process
     )
-    continue_training = True
-    epochs_trained = 0
     cur_step = 0
-
-    checkpoint = None
-    if training_args.resume_from_checkpoint is not None:
-        checkpoint = training_args.resume_from_checkpoint
-    elif last_checkpoint is not None:
-        checkpoint = last_checkpoint
-    if checkpoint is not None:
-        accelerator.load_state(checkpoint)
-        # Find num steps and epoch from saved state string pattern
-        pattern = r"checkpoint-(\d+)-epoch-(\d+)"
-        match = re.search(pattern, checkpoint)
-        cur_step = int(match.group(1))
-        epochs_trained = int(match.group(2))
-        logger.info("  Continuing training from checkpoint, will skip to saved global_step")
-        logger.info(f"  Continuing training from epoch {epochs_trained}")
-        logger.info(f"  Continuing training from global step {cur_step}")
-        steps_trained_progress_bar.update(cur_step)
-        for epoch in range(0, epochs_trained):
-            training_datasets["train"] = training_datasets["train"].shuffle(training_args.seed)
-        if training_args.max_steps < 0:
-            # we know exactly the number of steps per epoch, so can skip through the required number of batches
-            resume_step = (cur_step - epochs_trained * steps_per_epoch) * gradient_accumulation_steps
-        else:
-            # Currently we don't know how many steps we've taken in the current epoch
-            # So we just shuffle the dataset one extra time and start from a fresh epoch
-            # This is "good enough" for our purposes but not fully correct
-            resume_step = None
-            training_datasets["train"] = training_datasets["train"].shuffle(training_args.seed)
-    else:
-        resume_step = None
-
-    for epoch in range(epochs_trained, num_epochs):
-        training_datasets["train"] = training_datasets["train"].shuffle(training_args.seed)
+    for epoch in range(training_args.num_train_epochs):
+        training_datasets = training_datasets.shuffle(training_args.seed)
         train_dataloader = DataLoader(
-            training_datasets["train"],
+            training_datasets,
             collate_fn=data_collator,
             batch_size=per_device_train_batch_size,
             num_workers=training_args.dataloader_num_workers,
@@ -707,12 +467,6 @@ def main():
         train_dataloader = accelerator.prepare(train_dataloader)
         if hasattr(train_dataloader, "dataset") and isinstance(train_dataloader.dataset, IterableDataset):
             train_dataloader.dataset.set_epoch(epoch)
-
-        if resume_step is not None:
-            # Skip the first N batches in the dataloader when resuming from a checkpoint
-            train_dataloader = accelerator.skip_first_batches(train_dataloader, resume_step)
-            resume_step = None
-
         for batch in train_dataloader:
             with accelerator.accumulate(student_model):
                 loss, train_metric = train_step(batch, temperature=training_args.temperature)
@@ -722,59 +476,26 @@ def main():
                 optimizer.step()
                 lr_scheduler.step()
                 optimizer.zero_grad()
-
-            # Check if the accelerator has performed an optimization step behind the scenes
             if accelerator.sync_gradients:
                 steps_trained_progress_bar.update(1)
                 cur_step += 1
-
                 if cur_step % training_args.logging_steps == 0:
+                    tmp_lr = lr_scheduler.get_last_lr()[0]
+                    tmp_time = time.time() - train_start
                     steps_trained_progress_bar.write(
-                        f"Step... ({cur_step} / {total_train_steps} | Loss:"
-                        f" {train_metric['loss']}, Learning Rate:"
-                        f" {lr_scheduler.get_last_lr()[0]})"
+                        f"[Step {cur_step} / {total_train_steps}]: Loss:  {train_metric['loss']}, LR: {tmp_lr}"
                     )
-                    log_metric(
-                        accelerator,
-                        metrics=train_metric,
-                        learning_rate=lr_scheduler.get_last_lr()[0],
-                        train_time=train_time + time.time() - train_start,
-                        step=cur_step,
-                        epoch=epoch,
-                        prefix="train",
-                    )
-
-                # save checkpoint and weights after each save_steps and at the end of training
-                if (cur_step % training_args.save_steps == 0) or cur_step == total_train_steps:
-                    intermediate_dir = os.path.join(training_args.output_dir, f"checkpoint-{cur_step}-epoch-{epoch}")
-                    accelerator.save_state(output_dir=intermediate_dir)
-                    accelerator.wait_for_everyone()
-                    if accelerator.is_main_process:
-                        rotate_checkpoints(training_args.save_total_limit, output_dir=training_args.output_dir)
-
-                        if cur_step == total_train_steps:
-                            # un-wrap student model for save
-                            logger.info("unwrap model")
-                            student_model = accelerator.unwrap_model(student_model)
-                            logger.info("save_pretrained for the final model")
-                            student_model.save_pretrained(training_args.output_dir)
-
-                        if training_args.push_to_hub:
-                            logger.info("push_to_hub final model")
-                            repo.push_to_hub(
-                                commit_message=f"Saving train state of step {cur_step}: "
-                                               f"{data_args.train_dataset_name}-{data_args.train_dataset_config_name}",
-                                blocking=False,
-                            )
-
-                # break condition
-                if cur_step == total_train_steps:
-                    continue_training = False
-                    break
-
-        if not continue_training:
-            break
-
+                    train_metric.update({f"time": tmp_time, f"epoch": epoch, f"learning_rate": tmp_lr})
+                    accelerator.log(train_metric, step=cur_step)
+            accelerator.wait_for_everyone()
+            if accelerator.is_main_process:
+                logger.info("push_to_hub final model")
+                accelerator.unwrap_model(student_model).save_pretrained(training_args.output_dir)
+                repo.push_to_hub(
+                    commit_message=f"Saving train state of step {cur_step} (epoch: {epoch}): "
+                                   f"{data_args.train_dataset_name}-{data_args.train_dataset_config_name}",
+                    blocking=False,
+                )
     logger.info("close the training job")
     accelerator.end_training()
 

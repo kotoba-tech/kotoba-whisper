@@ -278,10 +278,8 @@ def main():
         # process audio length
         batch[model_input_name] = inputs.get(model_input_name)[0]
         # process targets
-        for _text, _lang, _task in text_lang_task:
-            batch[f"labels/{_text}"] = tokenizers[_text](
-                batch[_text], max_length=max_label_length, truncation=True
-            ).input_ids
+        for _text, _, _ in text_lang_task:
+            batch[f"labels/{_text}"] = tokenizers[_text](batch[_text], max_length=max_label_length, truncation=True).input_ids
         return batch
 
     raw_datasets_features = list(next(iter(raw_datasets.values())).features.keys())

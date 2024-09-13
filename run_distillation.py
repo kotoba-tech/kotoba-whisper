@@ -600,6 +600,7 @@ def main():
         num_beams = training_args.generation_num_beams
     else:
         num_beams = getattr(student_model.generation_config, "num_beams", 1)
+    # WARNING: gen_kwargs is not being used now.
     gen_kwargs = {"max_length": max_label_length, "num_beams": num_beams, "return_timestamps": return_timestamps}
     if hasattr(teacher_model.generation_config, "is_multilingual") and teacher_model.generation_config.is_multilingual:
         # forcing the language and task tokens helps multilingual models in their generations
@@ -625,6 +626,18 @@ def main():
         student_model.train()
         teacher_model.eval()
         student_outputs = student_model(**batch)
+
+        # TODO
+        # Currently the teacher model generates without any parameters, but we should provide following keyword at
+        # least to the teacher model (task="transcribe", language="ja").
+        #     gen_kwargs = {
+        #         "max_length": max_label_length,
+        #         "num_beams": num_beams,
+        #         "return_timestamps": data_args.return_timestamps
+        #     }
+        #     gen_kwargs.update({"language": data_args.language, "task": data_args.task})
+        #     teacher_model.generation_config.update(**gen_kwargs)
+
         with torch.no_grad():
             if share_hidden_states:
                 # if the student and teacher share the same frozen encoder then we don't have to recompute the

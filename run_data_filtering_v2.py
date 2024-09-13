@@ -19,13 +19,14 @@ os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
 
 def safe_push(dataset_to_push, repo_name, config_name):
-    while True:
-        try:
-            dataset_to_push.push_to_hub(repo_name, config_name=config_name)
-            break
-        except Exception:
-            print(f"FAILED: push_to_hub on {repo_name} failed. wait 60 sec and retry soon...")
-            time.sleep(60)
+    dataset_to_push.push_to_hub(repo_name, config_name=config_name)
+    # while True:
+    #     try:
+    #         dataset_to_push.push_to_hub(repo_name, config_name=config_name)
+    #         break
+    #     except Exception:
+    #         print(f"FAILED: push_to_hub on {repo_name} failed. wait 60 sec and retry soon...")
+    #         time.sleep(60)
 
 
 def main():
