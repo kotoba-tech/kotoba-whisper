@@ -180,7 +180,7 @@ distillation () {
 git clone "https://huggingface.co/${HF_ORG}/${HF_MODEL_ALIAS}"
 python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_0', num_proc=16)"""
 #for i in {1..8}
-for i in {2..8}
+for i in {6..8}
 do
   echo "EPOCH ${i}"
   for s in {0..8}

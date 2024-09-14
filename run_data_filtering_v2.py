@@ -20,13 +20,6 @@ os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
 def safe_push(dataset_to_push, repo_name, config_name):
     dataset_to_push.push_to_hub(repo_name, config_name=config_name)
-    # while True:
-    #     try:
-    #         dataset_to_push.push_to_hub(repo_name, config_name=config_name)
-    #         break
-    #     except Exception:
-    #         print(f"FAILED: push_to_hub on {repo_name} failed. wait 60 sec and retry soon...")
-    #         time.sleep(60)
 
 
 def main():
@@ -259,7 +252,7 @@ def main():
                 desc=f"filtering train dataset"
             )
         arg.dataset_name = f"{arg.dataset_name}.wer_{arg.wer_threshold}"
-        safe_push(DatasetDict({arg.split: dataset}), arg.dataset_name, arg.dataset_config_name)
+        DatasetDict({arg.split: dataset}).push_to_hub(arg.dataset_name, config_name=arg.dataset_config_name)
 
     ######################
     # Log-mel Conversion #
@@ -281,7 +274,7 @@ def main():
             num_proc=arg.preprocessing_num_workers,
             desc="obtain log-mel feature from audio"
         )
-        safe_push(DatasetDict({arg.split: dataset}), f"{arg.dataset_name}.vectorized", arg.dataset_config_name)
+        DatasetDict({arg.split: dataset}).push_to_hub(f"{arg.dataset_name}.vectorized", config_name=f"{arg.dataset_config_name}000")
 
 
 if __name__ == "__main__":

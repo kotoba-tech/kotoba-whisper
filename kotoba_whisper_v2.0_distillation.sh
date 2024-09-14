@@ -96,7 +96,8 @@ done
 
 # fix config name
 wget "https://huggingface.co/datasets/${HF_ORG}/whisper_transcriptions.reazon_speech_all/raw/main/README.md"
-
+wget "https://huggingface.co/datasets/${HF_ORG}/whisper_transcriptions.reazon_speech_all.wer_10.0/raw/main/README.md" -O tmp2.md
+wget "https://huggingface.co/datasets/${HF_ORG}/whisper_transcriptions.reazon_speech_all.wer_10.0.vectorized/raw/main/README.md" -O tmp3.md
 ```python
 import re
 
@@ -155,40 +156,38 @@ do
 done
 
 
-# runpod_pre_4
-for i in {21..40}
-do
-  filter_en ${i}
-done
 # runpod_pre_5
-for i in {41..60}
-do
-  filter_en ${i}
-done
-# runpod_pre_3
-for i in {71..80}
+for i in {51..53}
 do
   filter_en ${i}
 done
 
+for i in {54..57}
+do
+  filter_en ${i}
+done
 
+for i in {58..60}
+do
+  filter_en ${i}
+done
 
 filter_ja () {
   DATASET_CHUNK_ID=${1}
-  python run_data_filtering_v2.py \
-    -d "${HF_ORG}/whisper_transcriptions.reazon_speech_all" \
-    --dataset_config_name "subset_${DATASET_CHUNK_ID}" \
-    --task_filtering "transcribe" \
-    --language_filtering "ja" \
-    --task "transcribe,translate,transcribe,translate" \
-    --language "ja,en,ja,en" \
-    --text_column_name "transcription,transcription/en_gpt3.5,whisper_transcription,whisper_transcription/en_gpt3.5" \
-    --text_column_prediction "whisper_transcription" \
-    --text_column_label "transcription" \
-    --wer_threshold ${WER_THRESHOLD} \
-    --preprocessing_num_workers 64 \
-    --preprocessing_batch_size 64 \
-    --skip_logmel
+#  python run_data_filtering_v2.py \
+#    -d "${HF_ORG}/whisper_transcriptions.reazon_speech_all" \
+#    --dataset_config_name "subset_${DATASET_CHUNK_ID}" \
+#    --task_filtering "transcribe" \
+#    --language_filtering "ja" \
+#    --task "transcribe,translate,transcribe,translate" \
+#    --language "ja,en,ja,en" \
+#    --text_column_name "transcription,transcription/en_gpt3.5,whisper_transcription,whisper_transcription/en_gpt3.5" \
+#    --text_column_prediction "whisper_transcription" \
+#    --text_column_label "transcription" \
+#    --wer_threshold ${WER_THRESHOLD} \
+#    --preprocessing_num_workers 64 \
+#    --preprocessing_batch_size 64 \
+#    --skip_logmel
   python run_data_filtering_v2.py \
     -d "${HF_ORG}/whisper_transcriptions.reazon_speech_all.wer_${WER_THRESHOLD}" \
     --dataset_config_name "subset_${DATASET_CHUNK_ID}" \
@@ -207,88 +206,16 @@ filter_ja () {
   rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___whisper_transcriptions.reazon_speech_all.wer_${WER_THRESHOLD}/subset_${DATASET_CHUNK_ID}"
   rm -rf "${HOME}/.cache/huggingface/datasets/downloads"
 }
-# runpod_pre_1
-for i in {61..70}
-do
-  filter_ja ${i}
-done
-# runpod_pre_7
-for i in {53..60}
-do
-  filter_ja ${i}
-done
-# runpod_pre_8
-for i in {101..110}
-do
-  filter_ja ${i}
-done
-# runpod_pre_6
-for i in {91..100}
-do
-  filter_ja ${i}
-done
-# runpod_pre_9
-for i in {111..121}
-do
-  filter_ja ${i}
-done
-# runpod_pre_3
-for i in {81..90}
-do
-  filter_ja ${i}
-done
-# runpod_pre_2
-for i in {71..80}
-do
-  filter_ja ${i}
-done
-#TODO
-for i in {121..130}
-do
-  filter_ja ${i}
-done
-for i in {131..140}
-do
-  filter_ja ${i}
-done
-for i in {141..150}
-do
-  filter_ja ${i}
-done
-for i in {151..160}
-do
-  filter_ja ${i}
-done
-for i in {161..170}
-do
-  filter_ja ${i}
-done
-for i in {171..180}
-do
-  filter_ja ${i}
-done
-for i in {181..190}
-do
-  filter_ja ${i}
-done
-for i in {191..200}
-do
-  filter_ja ${i}
-done
-for i in {201..210}
-do
-  filter_ja ${i}
-done
-for i in {211..220}
-do
-  filter_ja ${i}
-done
-for i in {221..226}
-do
-  filter_ja ${i}
-done
 
+filter_ja 161
+filter_ja 19
+filter_ja 205
+filter_ja 206
+filter_ja 208
+filter_ja 214
 
+#filter_ja 105
+#filter_ja 53
 
 ############################
 # Initialize Student Model #
@@ -312,11 +239,24 @@ export WANDB_DISABLED="false"
 accelerate launch run_distillation.py \
   --model_name_or_path "./${HF_MODEL_ALIAS}-init" \
   --teacher_model_name_or_path "${TEACHER_MODEL}" \
-  --train_dataset_name "${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized" \
-  --train_dataset_config_name "${DATASET_TYPE}" \
+  --dataset_name_1 "${HF_ORG}/whisper_transcriptions.reazon_speech_all.wer_${WER_THRESHOLD}.vectorized" \
+  --dataset_split_name_1 "train" \
+  --dataset_config_name_1 "subset_0,subset_1,..." \
+  --dataset_feature_1 "whisper_transcription,transcription/en_gpt3.5" \
+  --dataset_language_1 "ja,en" \
+  --dataset_task_1 "transcribe,translate" \
+  --dataset_name_2 "${HF_ORG}/whisper_transcriptions.mls.wer_${WER_THRESHOLD}.vectorized" \
+  --dataset_split_name_2 "train" \
+  --dataset_config_name_2 "subset_0,subset_2,..." \
+  --dataset_feature_2 "whisper_transcription,transcription/ja_gpt3.5" \
+  --dataset_language_2 "en,ja" \
+  --dataset_task_2 "transcribe,translate" \
+
+
+
   --language "ja" \
   --max_label_length 128 \
-  --train_split_name "train" \
+
   --save_steps 2500 \
   --warmup_steps "${WARMUP_STEPS}" \
   --learning_rate 0.0001 \
