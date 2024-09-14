@@ -96,8 +96,6 @@ done
 
 # fix config name
 wget "https://huggingface.co/datasets/${HF_ORG}/whisper_transcriptions.reazon_speech_all/raw/main/README.md"
-wget "https://huggingface.co/datasets/${HF_ORG}/whisper_transcriptions.reazon_speech_all.wer_10.0/raw/main/README.md" -O tmp2.md
-wget "https://huggingface.co/datasets/${HF_ORG}/whisper_transcriptions.reazon_speech_all.wer_10.0.vectorized/raw/main/README.md" -O tmp3.md
 ```python
 import re
 
@@ -117,20 +115,20 @@ with open("README.md", "w") as f:
 # English
 filter_en () {
   DATASET_CHUNK_ID=${1}
-  python run_data_filtering_v2.py \
-    -d "${HF_ORG}/whisper_transcriptions.mls" \
-    --dataset_config_name "subset_${DATASET_CHUNK_ID}" \
-    --task_filtering "transcribe" \
-    --language_filtering "en" \
-    --task "transcribe,translate,transcribe,translate" \
-    --language "en,ja,en,ja" \
-    --text_column_name "transcription,transcription/ja_gpt3.5,whisper_transcription,whisper_transcription/ja_gpt3.5" \
-    --text_column_prediction "whisper_transcription" \
-    --text_column_label "transcription" \
-    --wer_threshold ${WER_THRESHOLD} \
-    --preprocessing_num_workers 64 \
-    --preprocessing_batch_size 64 \
-    --skip_logmel
+#  python run_data_filtering_v2.py \
+#    -d "${HF_ORG}/whisper_transcriptions.mls" \
+#    --dataset_config_name "subset_${DATASET_CHUNK_ID}" \
+#    --task_filtering "transcribe" \
+#    --language_filtering "en" \
+#    --task "transcribe,translate,transcribe,translate" \
+#    --language "en,ja,en,ja" \
+#    --text_column_name "transcription,transcription/ja_gpt3.5,whisper_transcription,whisper_transcription/ja_gpt3.5" \
+#    --text_column_prediction "whisper_transcription" \
+#    --text_column_label "transcription" \
+#    --wer_threshold ${WER_THRESHOLD} \
+#    --preprocessing_num_workers 64 \
+#    --preprocessing_batch_size 64 \
+#    --skip_logmel
   python run_data_filtering_v2.py \
     -d "${HF_ORG}/whisper_transcriptions.mls.wer_${WER_THRESHOLD}" \
     --dataset_config_name "subset_${DATASET_CHUNK_ID}" \
@@ -149,32 +147,37 @@ filter_en () {
   rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___whisper_transcriptions.mls.wer_${WER_THRESHOLD}/subset_${DATASET_CHUNK_ID}"
   rm -rf "${HOME}/.cache/huggingface/datasets/downloads"
 }
-
 for i in {0..138}
 do
   filter_en ${i}
 done
-filter_en 109
-filter_en 55
-filter_en 59
-
+filter_en '138'
+filter_en '2'
+filter_en '28'
+filter_en '52'
+filter_en '58'
+filter_en '59'
+filter_en '61'
+filter_en '73'
+filter_en '88'
+filter_en '92'
 
 filter_ja () {
   DATASET_CHUNK_ID=${1}
-#  python run_data_filtering_v2.py \
-#    -d "${HF_ORG}/whisper_transcriptions.reazon_speech_all" \
-#    --dataset_config_name "subset_${DATASET_CHUNK_ID}" \
-#    --task_filtering "transcribe" \
-#    --language_filtering "ja" \
-#    --task "transcribe,translate,transcribe,translate" \
-#    --language "ja,en,ja,en" \
-#    --text_column_name "transcription,transcription/en_gpt3.5,whisper_transcription,whisper_transcription/en_gpt3.5" \
-#    --text_column_prediction "whisper_transcription" \
-#    --text_column_label "transcription" \
-#    --wer_threshold ${WER_THRESHOLD} \
-#    --preprocessing_num_workers 64 \
-#    --preprocessing_batch_size 64 \
-#    --skip_logmel
+  python run_data_filtering_v2.py \
+    -d "${HF_ORG}/whisper_transcriptions.reazon_speech_all" \
+    --dataset_config_name "subset_${DATASET_CHUNK_ID}" \
+    --task_filtering "transcribe" \
+    --language_filtering "ja" \
+    --task "transcribe,translate,transcribe,translate" \
+    --language "ja,en,ja,en" \
+    --text_column_name "transcription,transcription/en_gpt3.5,whisper_transcription,whisper_transcription/en_gpt3.5" \
+    --text_column_prediction "whisper_transcription" \
+    --text_column_label "transcription" \
+    --wer_threshold ${WER_THRESHOLD} \
+    --preprocessing_num_workers 64 \
+    --preprocessing_batch_size 64 \
+    --skip_logmel
   python run_data_filtering_v2.py \
     -d "${HF_ORG}/whisper_transcriptions.reazon_speech_all.wer_${WER_THRESHOLD}" \
     --dataset_config_name "subset_${DATASET_CHUNK_ID}" \
@@ -193,16 +196,11 @@ filter_ja () {
   rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___whisper_transcriptions.reazon_speech_all.wer_${WER_THRESHOLD}/subset_${DATASET_CHUNK_ID}"
   rm -rf "${HOME}/.cache/huggingface/datasets/downloads"
 }
+for i in {0..223}
+do
+  filter_ja ${i}
+done
 
-filter_ja 161
-filter_ja 19
-filter_ja 205
-filter_ja 206
-filter_ja 208
-filter_ja 214
-
-#filter_ja 105
-#filter_ja 53
 
 ############################
 # Initialize Student Model #

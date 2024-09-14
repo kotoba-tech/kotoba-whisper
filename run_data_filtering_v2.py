@@ -274,7 +274,7 @@ def main():
             num_proc=arg.preprocessing_num_workers,
             desc="obtain log-mel feature from audio"
         )
-        DatasetDict({arg.split: dataset}).push_to_hub(f"{arg.dataset_name}.vectorized", config_name=f"{arg.dataset_config_name}000")
+        DatasetDict({arg.split: dataset}).push_to_hub(f"{arg.dataset_name}.vectorized", config_name=arg.dataset_config_name)
 
 
 if __name__ == "__main__":

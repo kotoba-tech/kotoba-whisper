@@ -4,7 +4,7 @@ import os
 import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
-
+from functools import partial
 import numpy as np
 import torch
 import torch.nn as nn
@@ -23,6 +23,7 @@ from transformers import (
     WhisperProcessor,
     WhisperTokenizerFast,
     set_seed,
+    WhisperFeatureExtractor,
 )
 from transformers.modeling_outputs import BaseModelOutput
 from transformers.utils import check_min_version
@@ -83,30 +84,30 @@ class DistillationTrainingArguments(Seq2SeqTrainingArguments):
 class DataCollatorSpeechSeq2SeqWithPadding:
     """Data collator that will dynamically pad the inputs received.
     Args:
-        processor ([`Wav2Vec2Processor`]): The processor used for proccessing the data.
         decoder_start_token_id (:obj: `int`): The start-of-sequence token id of the decoder.
-        decoder_prev_token_id (:obj: `int`): The start-of-prompt token id of the decoder
         max_target_length (:obj:`int`, `optional`): Maximum length of the ``labels`` of the returned list.
     """
-
-    processor: Any
+    model_input_name: str
+    feature_extractor: WhisperFeatureExtractor
+    tokenizer: WhisperTokenizerFast
     decoder_start_token_id: int
-    decoder_prev_token_id: int
-    label_features: List[str]
-    max_target_length: Optional[int] = None
+    max_target_length: int
+    feature: Dict[Dict[str]]
 
     def __call__(self, features: List[Dict[str, Union[List[int], np.ndarray]]]) -> Dict[str, np.ndarray]:
         # input audio feature
-        model_input_name = self.processor.model_input_names[0]  # "input_features"
-        input_features = {model_input_name: [feature[model_input_name] for feature in features]}
-        batch = self.processor.feature_extractor.pad(input_features, padding="longest", return_tensors="pt")
+        input_features = {self.model_input_name: [feature[self.model_input_name] for feature in features]}
+        batch = self.feature_extractor.pad(input_features, padding="longest", return_tensors="pt")
         # label feature
         # labels = {k: [feature[k] for feature in features] for k in self.label_features}
         # dataloader returns a list of features which we convert to a dict
         # reformat list to dict and set to pytorch format
-        for k in self.label_features:
+        for k, v in self.feature.keys():
+            self.tokenizer.set_prefix_tokens(language=v["language"], task=v["task"], predict_timestamps=True)
+
+
             label_features = {"input_ids": [feature[k] for feature in features]}
-            labels_batch = self.processor.tokenizer.pad(
+            labels_batch = self.tokenizer.pad(
                 label_features,
                 max_length=self.max_target_length,
                 padding="max_length",
@@ -220,9 +221,6 @@ def main():
     # freeze student encoder if necessary
     student_model.freeze_encoder()
     student_model.model.encoder.gradient_checkpointing = False
-    # We need to set the language and task ids for previously multilingual checkpoints
-    # tokenizer.set_prefix_tokens(language=data_args.language, task=data_args.task, predict_timestamps=False)
-    # student_model.generation_config.update(**{"language": data_args.language, "task": data_args.task})
     processor = WhisperProcessor.from_pretrained(training_args.output_dir)
 
     # 5. Define optimizer
@@ -267,11 +265,22 @@ def main():
         assert len(feature) == len(task) == len(language)
         return {k: {"language": l, "task": t} for k, l, t in zip(feature, language, task)}
 
-
+    collator = partial(
+        DataCollatorSpeechSeq2SeqWithPadding,
+        model_input_name=processor.model_input_names[0],  # "input_features"
+        feature_extractor=processor.feature_extractor,
+        decoder_start_token_id=student_model.config.decoder_start_token_id,  # <|startoftranscript|>
+        max_target_length=data_args.max_label_length,
+    )
     dataset_1 = get_dateset(data_args.dataset_name_1, data_args.dataset_split_1, data_args.dataset_config_name_1)
     feature_1 = format_dataset_feature(data_args.dataset_feature_1, data_args.dataset_language_1, data_args.dataset_task_1)
+    tokenizer.set_prefix_tokens(language=data_args.language, task=data_args.task, predict_timestamps=True)
+    # student_model.generation_config.update(**{"language": data_args.language, "task": data_args.task})
+
+    collator()
     dataset_2 = get_dateset(data_args.dataset_name_2, data_args.dataset_split_2, data_args.dataset_config_name_2)
     feature_2 = format_dataset_feature(data_args.dataset_feature_2, data_args.dataset_language_2, data_args.dataset_task_2)
+
     data_collator = DataCollatorSpeechSeq2SeqWithPadding(
         processor=processor,
         decoder_start_token_id=student_model.config.decoder_start_token_id,  # <|startoftranscript|>
@@ -292,7 +301,16 @@ def main():
     gen_kwargs = {"max_length": data_args.max_label_length, "num_beams": num_beams, "return_timestamps": True}
     # forcing the language and task tokens helps multilingual models in their generations
     # gen_kwargs.update({"language": data_args.language, "task": data_args.task})
-
+    logger.info("***** Running training *****")
+    logger.info(f" Num examples = {total_train_steps * train_batch_size * training_args.gradient_accumulation_steps}")
+    logger.info(f" Instantaneous batch size per device = {training_args.per_device_train_batch_size}")
+    logger.info(f" Gradient accumulation steps = {training_args.gradient_accumulation_steps}")
+    logger.info(f" Effective batch size (w. parallel & distributed) = {train_batch_size * training_args.gradient_accumulation_steps}")
+    logger.info(f" Total optimization steps = {total_train_steps}")
+    train_start = time.time()
+    steps_trained_progress_bar = tqdm(
+        range(total_train_steps), desc="Train steps ... ", position=0, disable=not accelerator.is_local_main_process
+    )
 
     def kl_divergence(teacher_logit, student_logit, labels):
         # Rescale distribution by temperature to ensure gradients scale correctly.
@@ -329,16 +347,7 @@ def main():
         metrics = {"loss": loss, "loss/kl": kl_loss, "loss/ce_transcription": ce_transcription, "loss/ce_translation": ce_translation}
         return loss, metrics
 
-    logger.info("***** Running training *****")
-    logger.info(f" Num examples = {total_train_steps * train_batch_size * training_args.gradient_accumulation_steps}")
-    logger.info(f" Instantaneous batch size per device = {training_args.per_device_train_batch_size}")
-    logger.info(f" Gradient accumulation steps = {training_args.gradient_accumulation_steps}")
-    logger.info(f" Effective batch size (w. parallel & distributed) = {train_batch_size * training_args.gradient_accumulation_steps}")
-    logger.info(f" Total optimization steps = {total_train_steps}")
-    train_start = time.time()
-    steps_trained_progress_bar = tqdm(
-        range(total_train_steps), desc="Train steps ... ", position=0, disable=not accelerator.is_local_main_process
-    )
+
     cur_step = 0
 
 
