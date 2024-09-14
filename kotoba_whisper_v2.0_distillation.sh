@@ -154,23 +154,10 @@ for i in {0..138}
 do
   filter_en ${i}
 done
+filter_en 109
+filter_en 55
+filter_en 59
 
-
-# runpod_pre_5
-for i in {51..53}
-do
-  filter_en ${i}
-done
-
-for i in {54..57}
-do
-  filter_en ${i}
-done
-
-for i in {58..60}
-do
-  filter_en ${i}
-done
 
 filter_ja () {
   DATASET_CHUNK_ID=${1}

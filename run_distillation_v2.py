@@ -22,7 +22,6 @@ from transformers import (
     WhisperForConditionalGeneration,
     WhisperProcessor,
     WhisperTokenizerFast,
-    get_scheduler,
     set_seed,
 )
 from transformers.modeling_outputs import BaseModelOutput
@@ -60,11 +59,7 @@ class DataTrainingArguments:
     dataset_feature_2: str = field(metadata={"help": "The feature names for the labels."})
     dataset_language_2: str = field(metadata={"help": "Language for multilingual distillation."})
     dataset_task_2: str = field(metadata={"help": "Task, either `transcribe` for speech recognition or `translate` for speech translation."})
-
-    preprocessing_num_workers: Optional[int] = field(
-        default=None,
-        metadata={"help": "The number of processes to use for the preprocessing."},
-    )
+    num_workers: Optional[int] = field(default=None, metadata={"help": "The number of processes for the preprocessing."})
     max_label_length: int = field(
         default=128,
         metadata={"help": "Truncate transcriptions that are longer `max_label_length` tokens."},
@@ -160,6 +155,7 @@ def main():
     # 1. Parse input arguments, keep distinct sets of args, for cleaner separation of model/data/training related args.
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, DistillationTrainingArguments))
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+    set_seed(training_args.seed)
 
     # 2. Initialize the accelerator and basic logging.
     accelerator = Accelerator(
@@ -229,36 +225,9 @@ def main():
     # student_model.generation_config.update(**{"language": data_args.language, "task": data_args.task})
     processor = WhisperProcessor.from_pretrained(training_args.output_dir)
 
-    # 6. Preprocessing the datasets: we need to read the audio files as arrays and tokenize the targets.
-
-    def get_dateset(name, split_name, config_name):
-        tmp_dataset = []
-        for c in config_name.split(","):
-            tmp_dataset += load_dataset(
-                name, c, split=split_name, trust_remote_code=True, num_proc=data_args.preprocessing_num_workers
-            )
-        return concatenate_datasets(tmp_dataset)
-
-    def format_dataset_feature(feature, language, task):
-        feature = feature.split(",")
-        language = language.split(",")
-        task = task.split(",")
-        assert len(feature) == len(task) == len(language)
-        return {k: [l, t] for k, l, t in zip(feature, language, task)}
-
-
-    dataset_1 = get_dateset(data_args.dataset_name_1, data_args.dataset_split_1, data_args.dataset_config_name_1)
-    feature_1 = format_dataset_feature(data_args.dataset_feature_1, data_args.dataset_language_1, data_args.dataset_task_1)
-    dataset_2 = get_dateset(data_args.dataset_name_2, data_args.dataset_split_2, data_args.dataset_config_name_2)
-    feature_2 = format_dataset_feature(data_args.dataset_feature_2, data_args.dataset_language_2, data_args.dataset_task_2)
-    set_seed(training_args.seed)
-
-
-    # 9. Define optimizer, LR scheduler, collator
+    # 5. Define optimizer
     decay_parameters = get_parameter_names(
-        student_model,
-        [nn.LayerNorm],
-        forbidden_module=[student_model.model.encoder],
+        student_model, [nn.LayerNorm], forbidden_module=[student_model.model.encoder]
     )
     decay_parameters = [name for name in decay_parameters if "bias" not in name]
     optimizer_grouped_parameters = [
@@ -277,16 +246,42 @@ def main():
         betas=(training_args.adam_beta1, training_args.adam_beta2),
         eps=training_args.adam_epsilon,
     )
-    # LR scheduler gets stepped by `num_processes` each time -> account for this in warmup / total steps
-    train_batch_size = training_args.per_device_train_batch_size * accelerator.num_processes
-    steps_per_epoch = len(training_datasets) // (train_batch_size * training_args.gradient_accumulation_steps)
-    total_train_steps = steps_per_epoch * training_args.num_train_epochs
-    lr_scheduler = get_scheduler(
-        name=training_args.lr_scheduler_type,
-        optimizer=optimizer,
-        num_warmup_steps=training_args.warmup_steps * accelerator.num_processes,
-        num_training_steps=total_train_steps * accelerator.num_processes,
+
+    # 6. Prepare everything with accelerate
+    student_model, teacher_model, optimizer = accelerator.prepare(student_model, teacher_model, optimizer)
+    student_model.train()
+    teacher_model.eval()
+
+    # 6. Preprocessing the datasets
+
+    def get_dateset(name, split_name, config_name):
+        dataset = []
+        for c in config_name.split(","):
+            dataset += load_dataset(name, c, split=split_name, trust_remote_code=True, num_proc=data_args.num_workers)
+        return concatenate_datasets(dataset)
+
+    def format_dataset_feature(feature, language, task):
+        feature = feature.split(",")
+        language = language.split(",")
+        task = task.split(",")
+        assert len(feature) == len(task) == len(language)
+        return {k: {"language": l, "task": t} for k, l, t in zip(feature, language, task)}
+
+
+    dataset_1 = get_dateset(data_args.dataset_name_1, data_args.dataset_split_1, data_args.dataset_config_name_1)
+    feature_1 = format_dataset_feature(data_args.dataset_feature_1, data_args.dataset_language_1, data_args.dataset_task_1)
+    dataset_2 = get_dateset(data_args.dataset_name_2, data_args.dataset_split_2, data_args.dataset_config_name_2)
+    feature_2 = format_dataset_feature(data_args.dataset_feature_2, data_args.dataset_language_2, data_args.dataset_task_2)
+    data_collator = DataCollatorSpeechSeq2SeqWithPadding(
+        processor=processor,
+        decoder_start_token_id=student_model.config.decoder_start_token_id,  # <|startoftranscript|>
+        decoder_prev_token_id=tokenizer.all_special_ids[-3],  # <|startofprev|>
+        max_target_length=data_args.max_label_length,
     )
+
+    # train_batch_size = training_args.per_device_train_batch_size * accelerator.num_processes
+    # steps_per_epoch = len(training_datasets) // (train_batch_size * training_args.gradient_accumulation_steps)
+    # total_train_steps = steps_per_epoch * training_args.num_train_epochs
 
     # 10. Define generation arguments - we need to do this before we wrap the models in DDP
     # so that we can still access the configs
@@ -298,12 +293,6 @@ def main():
     # forcing the language and task tokens helps multilingual models in their generations
     # gen_kwargs.update({"language": data_args.language, "task": data_args.task})
 
-    # 11. Prepare everything with accelerate
-    student_model, teacher_model, optimizer, lr_scheduler = accelerator.prepare(
-        student_model, teacher_model, optimizer, lr_scheduler
-    )
-    student_model.train()
-    teacher_model.eval()
 
     def kl_divergence(teacher_logit, student_logit, labels):
         # Rescale distribution by temperature to ensure gradients scale correctly.
@@ -351,12 +340,7 @@ def main():
         range(total_train_steps), desc="Train steps ... ", position=0, disable=not accelerator.is_local_main_process
     )
     cur_step = 0
-    data_collator = DataCollatorSpeechSeq2SeqWithPadding(
-        processor=processor,
-        decoder_start_token_id=student_model.config.decoder_start_token_id,  # <|startoftranscript|>
-        decoder_prev_token_id=tokenizer.all_special_ids[-3],  # <|startofprev|>
-        max_target_length=data_args.max_label_length,
-    )
+
 
     for epoch in range(training_args.num_train_epochs):
         training_datasets = training_datasets.shuffle(training_args.seed)
@@ -377,18 +361,16 @@ def main():
                 if accelerator.sync_gradients:
                     accelerator.clip_grad_norm_(student_model.parameters(), training_args.max_grad_norm)
                 optimizer.step()
-                lr_scheduler.step()
                 optimizer.zero_grad()
             if accelerator.sync_gradients:
                 steps_trained_progress_bar.update(1)
                 cur_step += 1
                 if cur_step % training_args.logging_steps == 0:
-                    tmp_lr = lr_scheduler.get_last_lr()[0]
                     tmp_time = time.time() - train_start
                     steps_trained_progress_bar.write(
-                        f"[Step {cur_step} / {total_train_steps}]: Loss:  {train_metric['loss']}, LR: {tmp_lr}"
+                        f"[Step {cur_step} / {total_train_steps}]: Loss:  {train_metric['loss']}"
                     )
-                    train_metric.update({f"time": tmp_time, f"epoch": epoch, f"learning_rate": tmp_lr})
+                    train_metric.update({f"time": tmp_time, f"epoch": epoch})
                     accelerator.log(train_metric, step=cur_step)
             accelerator.wait_for_everyone()
             if accelerator.is_main_process:
