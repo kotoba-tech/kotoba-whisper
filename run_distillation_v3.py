@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from collections import defaultdict
 from typing import Dict, List, Optional, Union
 from functools import partial
+from pathlib import Path
 from tqdm import tqdm
 
 import numpy as np
@@ -158,8 +159,8 @@ def main():
 
     # 3. Handle the repository creation
     if accelerator.is_main_process:
-        assert training_args.hub_model_id
-        repo_id = create_repo(training_args.hub_model_id, exist_ok=True, token=training_args.hub_token).repo_id
+        repo_name = Path(training_args.output_dir).absolute().name
+        repo_id = create_repo(repo_name, exist_ok=True, token=training_args.hub_token).repo_id
         repo = Repository(training_args.output_dir, clone_from=repo_id, token=training_args.hub_token)
         with open(os.path.join(training_args.output_dir, ".gitignore"), "w+") as gitignore:
             if "wandb" not in gitignore:
@@ -382,7 +383,7 @@ def main():
         if accelerator.is_main_process:
             logger.info(f"save_pretrained to {training_args.output_dir}")
             accelerator.unwrap_model(student_model).save_pretrained(training_args.output_dir)
-            logger.info(f"push_to_hub to {training_args.hub_model_id}")
+            logger.info(f"push_to_hub to {repo_name}")
             repo.push_to_hub(
                 commit_message=f"Saving train state of step {cur_step} (epoch: {epoch})",
                 blocking=False,
