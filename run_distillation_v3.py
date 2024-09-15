@@ -236,11 +236,6 @@ def main():
         return concatenate_datasets(
             [load_dataset(name, n, split=split_name, trust_remote_code=True) for n in config_name.split(",")]
         )
-        # return concatenate_datasets([dataset])
-        # dataset = []
-        # for c in config_name.split(","):
-        #     dataset += load_dataset(name, c, split=split_name, trust_remote_code=True, num_proc=data_args.num_workers)
-        # return concatenate_datasets(dataset)
 
     def format_dataset_feature(column, language, task, ts, kl):
         column = column.split(",")
@@ -318,7 +313,7 @@ def main():
         for feature, batch in zip([feature_1, feature_2], [batch_1, batch_2]):
             for k, v in feature.items():
                 gen_config = {"language": v["la"], "task": k, "return_timestamps": v["ts"]}
-                student_model.generation_config.update(**gen_config)
+                accelerator.unwrap_model(student_model).generation_config.update(**gen_config)
                 student_outputs = student_model(
                     encoder_outputs=BaseModelOutput(hidden_state[:len(batch["input_ids"])]),
                     labels=batch[f'labels/{v["col"]}'],
@@ -328,7 +323,7 @@ def main():
                 if v["kl"]:
                     # KL loss.
                     with torch.no_grad():
-                        teacher_model.generation_config.update(**gen_config)
+                        accelerator.unwrap_model(teacher_model).generation_config.update(**gen_config)
                         teacher_outputs = teacher_model(
                             encoder_outputs=BaseModelOutput(hidden_state[:len(batch["input_ids"])]),
                             labels=batch[f'labels/{v["col"]}']
