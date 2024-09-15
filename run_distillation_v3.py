@@ -329,7 +329,6 @@ def main():
                     metrics[f"kl_loss.{k}.{v['la']}.return_timestamps=={v['ts']}"] = kl_divergence(
                         teacher_outputs.logits, student_outputs.logits, batch[f'labels/{v["col"]}']
                     )
-                break
             break
         # Use Distil-Whisper formulation (fix weight of CE loss and tune KL weight, 1 as default).
         print(metrics)
