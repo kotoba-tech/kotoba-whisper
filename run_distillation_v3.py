@@ -2,7 +2,6 @@ import json
 import logging
 import os
 from dataclasses import dataclass, field
-from collections import defaultdict
 from typing import Dict, List, Optional, Union
 from functools import partial
 from pathlib import Path
@@ -312,7 +311,7 @@ def main():
             hidden_state_1 = hidden_state[:len(batch_1["input_features"])]
             hidden_state_2 = hidden_state[len(batch_1["input_features"]):]
         # CE loss.
-        metrics = defaultdict()
+        metrics = {}
         for feature, batch, hidden in zip([feature_1, feature_2], [batch_1, batch_2], [hidden_state_1, hidden_state_2]):
             for k, v in feature.items():
                 gen_config = {"language": v["la"], "task": k, "return_timestamps": v["ts"]}
@@ -322,7 +321,7 @@ def main():
                     labels=batch[f'labels/{v["col"]}'],
                     decoder_input_ids=batch[f'decoder_input_ids/{v["col"]}']
                 )
-                metrics[f"ce_loss.{k}.{v['la']}.return_timestamps=={v['ts']}"] += student_outputs.loss
+                metrics[f"ce_loss.{k}.{v['la']}.return_timestamps=={v['ts']}"] = student_outputs.loss
                 if v["kl"]:
                     # KL loss.
                     with torch.no_grad():
@@ -331,7 +330,7 @@ def main():
                             encoder_outputs=BaseModelOutput(hidden),
                             labels=batch[f'labels/{v["col"]}']
                         )
-                    metrics[f"kl_loss.{k}.{v['la']}.return_timestamps=={v['ts']}"] += kl_divergence(
+                    metrics[f"kl_loss.{k}.{v['la']}.return_timestamps=={v['ts']}"] = kl_divergence(
                         teacher_outputs.logits,
                         student_outputs.logits,
                         batch[f'labels/{v["col"]}']
