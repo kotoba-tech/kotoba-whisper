@@ -230,7 +230,7 @@ distillation () {
     --dataset_kl_1 "true,false" \
     --dataset_name_2 "${HF_ORG}/whisper_transcriptions.mls.wer_${WER_THRESHOLD}.vectorized" \
     --dataset_split_name_2 "train" \
-    --dataset_config_name_2 "${MODEL_CONFIG_1}" \
+    --dataset_config_name_2 "${MODEL_CONFIG_2}" \
     --dataset_feature_2 "whisper_transcription,transcription/ja_gpt3.5" \
     --dataset_language_2 "en,ja" \
     --dataset_task_2 "transcribe,translate" \
@@ -254,12 +254,12 @@ distillation () {
 import os
 from random import shuffle, seed, randint
 
-partion_size = 20
+partion_size = 40
 epoch = 8
 ja_data_range = list(range(223))
 en_data_range = list(range(138))
 seed(42)
-commands = []
+prev = None
 for e in range(1, 1 + epoch):
   print(f"# Epoch {e}")
   shuffle(ja_data_range)
@@ -273,10 +273,13 @@ for e in range(1, 1 + epoch):
     random_seed = randint(0, 100000)
     ja = ",".join([f"subset_{x}" for x in ja])
     en = ",".join([f"subset_{x}" for x in en])
-    commands.append([ja, en])
-    print(f"python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.reazon_speech_all.wer_10.0.vectorized' -c '{ja}' &")
-    print(f"python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.mls.wer_10.0.vectorized' -c '{en}' &")
-    print(f"distillation '{ja}' '{en}' '{random_seed}'")
+    if prev:
+      prev_ja, prev_en = prev
+      print(f"python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.reazon_speech_all.wer_10.0.vectorized' -c '{ja}' &")
+      print(f"python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.mls.wer_10.0.vectorized' -c '{en}' &")
+      print(f"distillation '{prev_ja}' '{prev_en}' '{random_seed}'")
+    prev = [ja, en]
+  print(f"distillation '{ja}' '{en}' '{random_seed}'")
 ```
 
 

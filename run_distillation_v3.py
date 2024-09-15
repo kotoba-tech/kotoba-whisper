@@ -280,7 +280,7 @@ def main():
     dataset_size = min(len(dataset_1), len(dataset_2)) * 2
     train_batch_size = training_args.per_device_train_batch_size * accelerator.num_processes
     steps_per_epoch = dataset_size // (train_batch_size * training_args.gradient_accumulation_steps)
-    total_train_steps = steps_per_epoch * training_args.num_train_epochs
+    total_train_steps = int(steps_per_epoch * training_args.num_train_epochs)
     logger.info("***** Running training *****")
     logger.info(f" Instantaneous batch size per device = {training_args.per_device_train_batch_size}")
     logger.info(f" Gradient accumulation steps = {training_args.gradient_accumulation_steps}")
