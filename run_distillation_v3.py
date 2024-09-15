@@ -272,6 +272,7 @@ def main():
         data_args.dataset_kl_2
     )
     dataset_collator_2 = collator(feature=[i["col"] for i in feature_2.values()])
+    accelerator.wait_for_everyone()
 
     # 8. Model distillation.
     dataset_size = min(len(dataset_1), len(dataset_2)) * 2
@@ -308,14 +309,16 @@ def main():
         # hidden_state = student_model(input_features=input_features).encoder_last_hidden_state
         with torch.no_grad():
             hidden_state = encoder(input_features=input_features).last_hidden_state
+            hidden_state_1 = hidden_state[:len(batch_1["input_features"])]
+            hidden_state_2 = hidden_state[len(batch_1["input_features"]):]
         # CE loss.
         metrics = defaultdict()
-        for feature, batch in zip([feature_1, feature_2], [batch_1, batch_2]):
+        for feature, batch, hidden in zip([feature_1, feature_2], [batch_1, batch_2], [hidden_state_1, hidden_state_2]):
             for k, v in feature.items():
                 gen_config = {"language": v["la"], "task": k, "return_timestamps": v["ts"]}
                 accelerator.unwrap_model(student_model).generation_config.update(**gen_config)
                 student_outputs = student_model(
-                    encoder_outputs=BaseModelOutput(hidden_state[:len(batch["input_ids"])]),
+                    encoder_outputs=BaseModelOutput(hidden),
                     labels=batch[f'labels/{v["col"]}'],
                     decoder_input_ids=batch[f'decoder_input_ids/{v["col"]}']
                 )
@@ -325,7 +328,7 @@ def main():
                     with torch.no_grad():
                         accelerator.unwrap_model(teacher_model).generation_config.update(**gen_config)
                         teacher_outputs = teacher_model(
-                            encoder_outputs=BaseModelOutput(hidden_state[:len(batch["input_ids"])]),
+                            encoder_outputs=BaseModelOutput(hidden),
                             labels=batch[f'labels/{v["col"]}']
                         )
                     metrics[f"kl_loss.{k}.{v['la']}.return_timestamps=={v['ts']}"] += kl_divergence(
