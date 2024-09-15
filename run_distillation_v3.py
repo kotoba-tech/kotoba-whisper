@@ -340,7 +340,7 @@ def main():
         return metrics["loss"], metrics
 
     cur_step = 0
-    for epoch in range(training_args.num_train_epochs):
+    for epoch in range(int(training_args.num_train_epochs)):
         # Set up two data loaders for each dataset.
         dataset_1 = dataset_1.shuffle(training_args.seed)
         loader_1 = accelerator.prepare(
