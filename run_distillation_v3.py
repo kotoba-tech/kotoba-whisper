@@ -369,7 +369,7 @@ def main():
                 break
 
             with accelerator.accumulate(student_model):
-                loss, train_metric = train_step(single_batch_1, single_batch_2)
+                loss, metric = train_step(single_batch_1, single_batch_2)
                 accelerator.backward(loss)
                 if accelerator.sync_gradients:
                     accelerator.clip_grad_norm_(student_model.parameters(), training_args.max_grad_norm)
@@ -380,9 +380,9 @@ def main():
                 cur_step += 1
                 if cur_step % training_args.logging_steps == 0:
                     p_bar.write(
-                        f"[{cur_step} / {total_train_steps}]:" + ",".join([f"{k}: {v}" for k, v in train_metric.items()])
+                        f"[{cur_step} / {total_train_steps}]:\n{'\n'.join([f'{k}: {v.item()}' for k, v in metric.items()])}"
                     )
-                    accelerator.log(train_metric)
+                    accelerator.log(metric)
         accelerator.wait_for_everyone()
         if accelerator.is_main_process:
             logger.info(f"save_pretrained to {training_args.output_dir}")

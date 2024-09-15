@@ -233,6 +233,28 @@ distillation "${HF_MODEL_ALIAS}" "split_${s}" "0" ${i}
 rm -rf ${HF_MODEL_ALIAS}/checkpoint-*
 rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized/split_${s}"
 rm -rf "${HOME}/.cache/huggingface/datasets/downloads"
+s=5
+distillation "${HF_MODEL_ALIAS}" "split_${s}" "0" ${i}
+rm -rf ${HF_MODEL_ALIAS}/checkpoint-*
+rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized/split_${s}"
+rm -rf "${HOME}/.cache/huggingface/datasets/downloads"
+s=6
+distillation "${HF_MODEL_ALIAS}" "split_${s}" "0" ${i}
+rm -rf ${HF_MODEL_ALIAS}/checkpoint-*
+rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized/split_${s}"
+rm -rf "${HOME}/.cache/huggingface/datasets/downloads"
+s=7
+distillation "${HF_MODEL_ALIAS}" "split_${s}" "0" ${i}
+rm -rf ${HF_MODEL_ALIAS}/checkpoint-*
+rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized/split_${s}"
+rm -rf "${HOME}/.cache/huggingface/datasets/downloads"
+s=8
+distillation "${HF_MODEL_ALIAS}" "split_${s}" "0" ${i}
+rm -rf ${HF_MODEL_ALIAS}/checkpoint-*
+rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized/split_${s}"
+rm -rf "${HOME}/.cache/huggingface/datasets/downloads"
+
+
 
 
 ##########################

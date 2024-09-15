@@ -209,52 +209,11 @@ cd ../
 ##########################
 # Training Student Model #
 ##########################
-distillation () {
-  export WANDB_DISABLED="true"
-  MODEL_CONFIG_1=${1}
-  MODEL_CONFIG_2=${2}
-  SEED=${3}
-  echo "MODEL_CONFIG_1: ${MODEL_CONFIG_1}"
-  echo "MODEL_CONFIG_2: ${MODEL_CONFIG_2}"
-  echo "SEED: ${SEED}"
-  accelerate launch run_distillation_v3.py \
-    --model_name_or_path "${HF_MODEL_ALIAS}" \
-    --teacher_model_name_or_path "${TEACHER_MODEL}" \
-    --dataset_name_1 "${HF_ORG}/whisper_transcriptions.reazon_speech_all.wer_${WER_THRESHOLD}.vectorized" \
-    --dataset_split_name_1 "train" \
-    --dataset_config_name_1 "${MODEL_CONFIG_1}" \
-    --dataset_feature_1 "whisper_transcription,transcription/en_gpt3.5" \
-    --dataset_language_1 "ja,en" \
-    --dataset_task_1 "transcribe,translate" \
-    --dataset_timestamp_1 "true,false" \
-    --dataset_kl_1 "true,false" \
-    --dataset_name_2 "${HF_ORG}/whisper_transcriptions.mls.wer_${WER_THRESHOLD}.vectorized" \
-    --dataset_split_name_2 "train" \
-    --dataset_config_name_2 "${MODEL_CONFIG_2}" \
-    --dataset_feature_2 "whisper_transcription,transcription/ja_gpt3.5" \
-    --dataset_language_2 "en,ja" \
-    --dataset_task_2 "transcribe,translate" \
-    --dataset_timestamp_2 "true,false" \
-    --dataset_kl_2 "true,false" \
-    --max_label_length 128 \
-    --learning_rate 0.0001 \
-    --logging_steps 50 \
-    --attn_implementation "flash_attention_2" \
-    --per_device_train_batch_size 32 \
-    --gradient_accumulation_steps 1 \
-    --dataloader_num_workers 1 \
-    --output_dir "./${HF_MODEL_ALIAS}" \
-    --gradient_checkpointing \
-    --overwrite_output_dir \
-    --seed ${SEED} \
-    --report_to "none" \
-    --num_train_epochs 1
-}
 ```python
 import os
 from random import shuffle, seed, randint
 
-partion_size = 40
+partion_size = 20
 epoch = 8
 ja_data_range = list(range(223))
 en_data_range = list(range(138))
