@@ -252,7 +252,7 @@ def main():
         decoder_start_token_id=decoder_start_token_id,
         max_target_length=data_args.max_label_length,
     )
-    dataset_1 = get_dateset(data_args.dataset_name_1, data_args.dataset_split_1, data_args.dataset_config_name_1)
+    dataset_1 = get_dateset(data_args.dataset_name_1, data_args.dataset_split_name_1, data_args.dataset_config_name_1)
     feature_1 = format_dataset_feature(
         data_args.dataset_feature_1,
         data_args.dataset_language_1,
@@ -261,7 +261,7 @@ def main():
         data_args.dataset_kl_1
     )
     dataset_collator_1 = collator(feature=[i["column"] for i in feature_1.values()])
-    dataset_2 = get_dateset(data_args.dataset_name_2, data_args.dataset_split_2, data_args.dataset_config_name_2)
+    dataset_2 = get_dateset(data_args.dataset_name_2, data_args.dataset_split_name_2, data_args.dataset_config_name_2)
     feature_2 = format_dataset_feature(
         data_args.dataset_feature_2,
         data_args.dataset_language_2,
