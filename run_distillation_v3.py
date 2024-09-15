@@ -223,10 +223,8 @@ def main():
     )
 
     # 6. Prepare everything with accelerate
-    encoder = teacher_model.get_encoder()
-    student_model, teacher_model, encoder, optimizer = accelerator.prepare(student_model, teacher_model, encoder, optimizer)
+    student_model, teacher_model, optimizer = accelerator.prepare(student_model, teacher_model, optimizer)
     student_model.train()
-    encoder.eval()
     teacher_model.eval()
 
     # 7. Preprocessing the datasets
@@ -302,34 +300,32 @@ def main():
         return kl_loss * training_args.temperature ** 2
 
     def train_step(batch_1, batch_2):
-        # Encoder output is shared across transcribe/translation and CE/KL loss.
-        input_features = torch.concat([batch_1["input_features"], batch_2["input_features"]])
-        # hidden_state = student_model(input_features=input_features).encoder_last_hidden_state
-        # hidden_state = encoder(input_features=input_features).last_hidden_state
-        # hidden_state_1 = hidden_state[:len(batch_1["input_features"])]
-        # hidden_state_2 = hidden_state[len(batch_1["input_features"]):]
         # CE loss.
         metrics = {}
-        # for feature, batch, hidden in zip([feature_1, feature_2], [batch_1, batch_2], [hidden_state_1, hidden_state_2]):
         for feature, batch in zip([feature_1, feature_2], [batch_1, batch_2]):
-            hidden = encoder(batch["input_features"]).last_hidden_state
+            hidden = None
             for k, v in feature.items():
                 gen_config = {"language": v["la"], "task": k, "return_timestamps": v["ts"]}
                 accelerator.unwrap_model(student_model).generation_config.update(**gen_config)
-                student_outputs = student_model(
-                    encoder_outputs=BaseModelOutput(hidden),
-                    labels=batch[f'labels/{v["col"]}'],
-                    decoder_input_ids=batch[f'decoder_input_ids/{v["col"]}']
-                )
+                if hidden is None:
+                    student_outputs = student_model(
+                        input_features=batch["input_features"],
+                        labels=batch[f'labels/{v["col"]}'],
+                        decoder_input_ids=batch[f'decoder_input_ids/{v["col"]}']
+                    )
+                    hidden = BaseModelOutput(student_outputs.encoder_last_hidden_state)
+                else:
+                    student_outputs = student_model(
+                        encoder_outputs=hidden,
+                        labels=batch[f'labels/{v["col"]}'],
+                        decoder_input_ids=batch[f'decoder_input_ids/{v["col"]}']
+                    )
                 metrics[f"ce_loss.{k}.{v['la']}.return_timestamps=={v['ts']}"] = student_outputs.loss
                 if v["kl"]:
                     # KL loss.
                     with torch.no_grad():
                         accelerator.unwrap_model(teacher_model).generation_config.update(**gen_config)
-                        teacher_outputs = teacher_model(
-                            encoder_outputs=BaseModelOutput(hidden),
-                            labels=batch[f'labels/{v["col"]}']
-                        )
+                        teacher_outputs = teacher_model(encoder_outputs=hidden, labels=batch[f'labels/{v["col"]}'])
                     metrics[f"kl_loss.{k}.{v['la']}.return_timestamps=={v['ts']}"] = kl_divergence(
                         teacher_outputs.logits,
                         student_outputs.logits,
