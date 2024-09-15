@@ -301,7 +301,7 @@ def main():
 
     def train_step(batch_1, batch_2):
         # CE loss.
-        metrics = {}
+        metrics = dict()
         for feature, batch in zip([feature_1, feature_2], [batch_1, batch_2]):
             hidden = None
             for k, v in feature.items():
@@ -321,16 +321,14 @@ def main():
                         decoder_input_ids=batch[f'decoder_input_ids/{v["col"]}']
                     )
                 metrics[f"ce_loss.{k}.{v['la']}.return_timestamps=={v['ts']}"] = student_outputs.loss
-                if v["kl"]:
-                    # KL loss.
-                    with torch.no_grad():
-                        accelerator.unwrap_model(teacher_model).generation_config.update(**gen_config)
-                        teacher_outputs = teacher_model(encoder_outputs=hidden, labels=batch[f'labels/{v["col"]}'])
-                    metrics[f"kl_loss.{k}.{v['la']}.return_timestamps=={v['ts']}"] = kl_divergence(
-                        teacher_outputs.logits,
-                        student_outputs.logits,
-                        batch[f'labels/{v["col"]}']
-                    )
+                # if v["kl"]:
+                #     # KL loss.
+                #     with torch.no_grad():
+                #         accelerator.unwrap_model(teacher_model).generation_config.update(**gen_config)
+                #         teacher_outputs = teacher_model(encoder_outputs=hidden, labels=batch[f'labels/{v["col"]}'])
+                #     metrics[f"kl_loss.{k}.{v['la']}.return_timestamps=={v['ts']}"] = kl_divergence(
+                #         teacher_outputs.logits, student_outputs.logits, batch[f'labels/{v["col"]}']
+                #     )
         # Use Distil-Whisper formulation (fix weight of CE loss and tune KL weight, 1 as default).
         ce_loss = sum(v for k, v in metrics.items() if k.startswith("ce_loss."))
         kl_loss = sum(v for k, v in metrics.items() if k.startswith("kl_loss."))
