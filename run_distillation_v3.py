@@ -231,10 +231,14 @@ def main():
     # 7. Preprocessing the datasets
 
     def get_dateset(name, split_name, config_name):
-        dataset = []
-        for c in config_name.split(","):
-            dataset += load_dataset(name, c, split=split_name, trust_remote_code=True, num_proc=data_args.num_workers)
-        return concatenate_datasets(dataset)
+        return concatenate_datasets(
+            [load_dataset(name, n, split=split_name, trust_remote_code=True) for n in config_name.split(",")]
+        )
+        # return concatenate_datasets([dataset])
+        # dataset = []
+        # for c in config_name.split(","):
+        #     dataset += load_dataset(name, c, split=split_name, trust_remote_code=True, num_proc=data_args.num_workers)
+        # return concatenate_datasets(dataset)
 
     def format_dataset_feature(column, language, task, ts, kl):
         column = column.split(",")
