@@ -191,6 +191,7 @@ def main():
     assert hasattr(student_model.generation_config, "is_multilingual") and student_model.generation_config.is_multilingual
     assert student_model.config.d_model == teacher_model.config.d_model
     assert student_model.config.decoder_start_token_id and teacher_model.config.decoder_start_token_id
+    decoder_start_token_id = student_model.config.decoder_start_token_id  # <|startoftranscript|>
     # enable gradient checkpointing if necessary
     if training_args.gradient_checkpointing:
         student_model.gradient_checkpointing_enable()
@@ -248,7 +249,7 @@ def main():
         model_input_name=processor.model_input_names[0],  # "input_features"
         feature_extractor=processor.feature_extractor,
         tokenizer=processor.tokenizer,
-        decoder_start_token_id=student_model.config.decoder_start_token_id,  # <|startoftranscript|>
+        decoder_start_token_id=decoder_start_token_id,
         max_target_length=data_args.max_label_length,
     )
     dataset_1 = get_dateset(data_args.dataset_name_1, data_args.dataset_split_1, data_args.dataset_config_name_1)

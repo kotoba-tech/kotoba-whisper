@@ -205,6 +205,7 @@ python create_student_model.py \
   --encoder_layers 32 \
   --decoder_layers 2 \
   --save_dir "./${HF_MODEL_ALIAS}-init"
+cp ./${HF_MODEL_ALIAS}-init/* ./
 cd ../
 ##########################
 # Training Student Model #
@@ -240,11 +241,12 @@ distillation () {
     --max_label_length 128 \
     --learning_rate 0.0001 \
     --logging_steps 50 \
+    --attn_implementation "flash_attention_2" \
     --per_device_train_batch_size 32 \
     --gradient_accumulation_steps 1 \
-    --num_workers 64 \
+    --num_workers 16 \
     --dataloader_num_workers 1 \
-    --output_dir "./" \
+    --output_dir "./${HF_MODEL_ALIAS}" \
     --gradient_checkpointing \
     --overwrite_output_dir \
     --seed ${SEED} \
@@ -278,7 +280,7 @@ for e in range(1, 1 + epoch):
 ```
 
 # Epoch 1
-distillation "distil-whisper-bilingual/distil-whisper-bilingual-init" 'subset_162,subset_36,subset_185,subset_2,subset_45,subset_105,subset_195,subset_168,subset_52,subset_208,subset_212,subset_159,subset_110,subset_123,subset_121,subset_98,subset_181,subset_60,subset_13,subset_44,subset_16,subset_84' 'subset_67,subset_121,subset_126,subset_78,subset_134,subset_14,subset_72,subset_113,subset_4,subset_26,subset_131,subset_38,subset_74' '17154'
+distillation "distil-whisper-bilingual" 'subset_162,subset_36,subset_185,subset_2,subset_45,subset_105,subset_195,subset_168,subset_52,subset_208,subset_212,subset_159,subset_110,subset_123,subset_121,subset_98,subset_181,subset_60,subset_13,subset_44,subset_16,subset_84' 'subset_67,subset_121,subset_126,subset_78,subset_134,subset_14,subset_72,subset_113,subset_4,subset_26,subset_131,subset_38,subset_74' '17154'
 distillation 'distil-whisper-bilingual' 'subset_135,subset_29,subset_215,subset_21,subset_169,subset_194,subset_30,subset_127,subset_175,subset_4,subset_42,subset_47,subset_5,subset_77,subset_3,subset_15,subset_216,subset_190,subset_205,subset_81,subset_192,subset_99' 'subset_40,subset_75,subset_98,subset_117,subset_22,subset_53,subset_47,subset_48,subset_64,subset_63,subset_25,subset_19,subset_28' '88039'
 distillation 'distil-whisper-bilingual' 'subset_133,subset_66,subset_145,subset_73,subset_10,subset_122,subset_177,subset_9,subset_12,subset_38,subset_138,subset_61,subset_198,subset_89,subset_193,subset_134,subset_119,subset_79,subset_78,subset_209,subset_64,subset_103' 'subset_5,subset_107,subset_2,subset_81,subset_65,subset_36,subset_10,subset_33,subset_32,subset_127,subset_41,subset_39,subset_20' '84607'
 distillation 'distil-whisper-bilingual' 'subset_0,subset_111,subset_196,subset_180,subset_37,subset_222,subset_140,subset_126,subset_104,subset_144,subset_187,subset_218,subset_32,subset_171,subset_152,subset_85,subset_48,subset_161,subset_125,subset_76,subset_100,subset_153' 'subset_49,subset_34,subset_37,subset_3,subset_91,subset_106,subset_76,subset_79,subset_80,subset_105,subset_42,subset_97,subset_99' '39321'
