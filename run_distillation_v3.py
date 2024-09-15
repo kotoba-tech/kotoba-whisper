@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Union
 from functools import partial
 from pathlib import Path
 from tqdm import tqdm
+from shutil import rmtree
 
 import numpy as np
 import torch
@@ -390,6 +391,11 @@ def main():
                 blocking=False,
             )
     logger.info("close the training job")
+    home = os.path.expanduser('~')
+    for dataset_name in [data_args.dataset_name_1, data_args.dataset_name_2]:
+        for c in data_args.dataset_config_name_1.split(","):
+            rmtree(f"{home}/.cache/huggingface/datasets/{dataset_name.replace('/', '___')}/{c}")
+    rmtree(f"{home}/.cache/huggingface/datasets/downloads")
     accelerator.end_training()
 
 
