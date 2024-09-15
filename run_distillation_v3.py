@@ -330,6 +330,7 @@ def main():
                         teacher_outputs.logits, student_outputs.logits, batch[f'labels/{v["col"]}']
                     )
                 break
+            break
         # Use Distil-Whisper formulation (fix weight of CE loss and tune KL weight, 1 as default).
         print(metrics)
         ce_loss = sum(v for k, v in metrics.items() if k.startswith("ce_loss."))
