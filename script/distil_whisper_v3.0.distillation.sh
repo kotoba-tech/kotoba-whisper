@@ -35,7 +35,7 @@ distillation () {
     --learning_rate 0.0001 \
     --logging_steps 50 \
     --attn_implementation "flash_attention_2" \
-    --per_device_train_batch_size 32 \
+    --per_device_train_batch_size 64 \
     --gradient_accumulation_steps 1 \
     --dataloader_num_workers 1 \
     --output_dir "./${HF_MODEL_ALIAS}" \
