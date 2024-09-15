@@ -39,7 +39,6 @@ distillation () {
     --gradient_accumulation_steps 1 \
     --dataloader_num_workers 1 \
     --output_dir "./${HF_MODEL_ALIAS}" \
-    --gradient_checkpointing \
     --overwrite_output_dir \
     --seed ${SEED} \
     --report_to "none" \
