@@ -306,6 +306,7 @@ def main():
 
     def train_step(batch_1, batch_2):
         # Encoder output is shared across transcribe/translation and CE/KL loss.
+        print(batch_1.keys())
         input_ids = torch.concat([batch_1["input_ids"], batch_2["input_ids"]])
         hidden_state = student_model(input_ids=input_ids).encoder_last_hidden_state
         # CE loss.
