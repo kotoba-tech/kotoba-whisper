@@ -57,6 +57,7 @@ class DataTrainingArguments:
     dataset_language_2: str = field(metadata={"help": "Language for multilingual distillation."})
     dataset_task_2: str = field(metadata={"help": "Task, either `transcribe` for speech recognition or `translate` for speech translation."})
     dataset_timestamp_2: str = field(metadata={"help": "Whether or not to predict timestamps."})
+    dataset_kl_2: str = field(metadata={"help": "Whether or not to apply KL loss."})
     max_label_length: int = field(metadata={"help": "Truncate transcriptions that are longer `max_label_length`."})
     num_workers: Optional[int] = field(default=None, metadata={"help": "The number of processes for the preprocessing."})
     wandb_project: str = field(default="distil-whisper", metadata={"help": "The name of the wandb project."})
