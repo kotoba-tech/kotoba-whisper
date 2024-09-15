@@ -224,8 +224,10 @@ def main():
     )
 
     # 6. Prepare everything with accelerate
-    student_model, teacher_model, optimizer = accelerator.prepare(student_model, teacher_model, optimizer)
+    encoder = teacher_model.get_encoder()
+    student_model, teacher_model, encoder, optimizer = accelerator.prepare(student_model, teacher_model, encoder, optimizer)
     student_model.train()
+    encoder.eval()
     teacher_model.eval()
 
     # 7. Preprocessing the datasets
@@ -310,7 +312,7 @@ def main():
         input_features = torch.concat([batch_1["input_features"], batch_2["input_features"]])
         # hidden_state = student_model(input_features=input_features).encoder_last_hidden_state
         with torch.no_grad():
-            hidden_state = accelerator.unwrap_model(student_model).get_encoder()(input_features=input_features).last_hidden_state
+            hidden_state = encoder(input_features=input_features).last_hidden_state
         # CE loss.
         metrics = defaultdict()
         for feature, batch in zip([feature_1, feature_2], [batch_1, batch_2]):
