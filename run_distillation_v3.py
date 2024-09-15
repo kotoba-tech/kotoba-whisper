@@ -308,7 +308,8 @@ def main():
         # Encoder output is shared across transcribe/translation and CE/KL loss.
         print(batch_1.keys())
         input_features = torch.concat([batch_1["input_features"], batch_2["input_features"]])
-        hidden_state = student_model(input_features=input_features).encoder_last_hidden_state
+        with torch.no_grad():
+            hidden_state = student_model(input_features=input_features).encoder_last_hidden_state
         # CE loss.
         metrics = defaultdict()
         for feature, batch in zip([feature_1, feature_2], [batch_1, batch_2]):
