@@ -115,20 +115,20 @@ with open("README.md", "w") as f:
 # English
 filter_en () {
   DATASET_CHUNK_ID=${1}
-#  python run_data_filtering_v2.py \
-#    -d "${HF_ORG}/whisper_transcriptions.mls" \
-#    --dataset_config_name "subset_${DATASET_CHUNK_ID}" \
-#    --task_filtering "transcribe" \
-#    --language_filtering "en" \
-#    --task "transcribe,translate,transcribe,translate" \
-#    --language "en,ja,en,ja" \
-#    --text_column_name "transcription,transcription/ja_gpt3.5,whisper_transcription,whisper_transcription/ja_gpt3.5" \
-#    --text_column_prediction "whisper_transcription" \
-#    --text_column_label "transcription" \
-#    --wer_threshold ${WER_THRESHOLD} \
-#    --preprocessing_num_workers 64 \
-#    --preprocessing_batch_size 64 \
-#    --skip_logmel
+  python run_data_filtering_v2.py \
+    -d "${HF_ORG}/whisper_transcriptions.mls" \
+    --dataset_config_name "subset_${DATASET_CHUNK_ID}" \
+    --task_filtering "transcribe" \
+    --language_filtering "en" \
+    --task "transcribe,translate,transcribe,translate" \
+    --language "en,ja,en,ja" \
+    --text_column_name "transcription,transcription/ja_gpt3.5,whisper_transcription,whisper_transcription/ja_gpt3.5" \
+    --text_column_prediction "whisper_transcription" \
+    --text_column_label "transcription" \
+    --wer_threshold ${WER_THRESHOLD} \
+    --preprocessing_num_workers 64 \
+    --preprocessing_batch_size 64 \
+    --skip_logmel
   python run_data_filtering_v2.py \
     -d "${HF_ORG}/whisper_transcriptions.mls.wer_${WER_THRESHOLD}" \
     --dataset_config_name "subset_${DATASET_CHUNK_ID}" \
@@ -151,16 +151,6 @@ for i in {0..138}
 do
   filter_en ${i}
 done
-filter_en '138'
-filter_en '2'
-filter_en '28'
-filter_en '52'
-filter_en '58'
-filter_en '59'
-filter_en '61'
-filter_en '73'
-filter_en '88'
-filter_en '92'
 
 filter_ja () {
   DATASET_CHUNK_ID=${1}
@@ -220,44 +210,46 @@ python create_student_model.py \
 ##########################
 # Training Student Model #
 ##########################
-export WANDB_DISABLED="false"
-accelerate launch run_distillation.py \
-  --model_name_or_path "./${HF_MODEL_ALIAS}-init" \
-  --teacher_model_name_or_path "${TEACHER_MODEL}" \
-  --dataset_name_1 "${HF_ORG}/whisper_transcriptions.reazon_speech_all.wer_${WER_THRESHOLD}.vectorized" \
-  --dataset_split_name_1 "train" \
-  --dataset_config_name_1 "subset_0,subset_1,..." \
-  --dataset_feature_1 "whisper_transcription,transcription/en_gpt3.5" \
-  --dataset_language_1 "ja,en" \
-  --dataset_task_1 "transcribe,translate" \
-  --dataset_name_2 "${HF_ORG}/whisper_transcriptions.mls.wer_${WER_THRESHOLD}.vectorized" \
-  --dataset_split_name_2 "train" \
-  --dataset_config_name_2 "subset_0,subset_2,..." \
-  --dataset_feature_2 "whisper_transcription,transcription/ja_gpt3.5" \
-  --dataset_language_2 "en,ja" \
-  --dataset_task_2 "transcribe,translate" \
-
-
-
-  --language "ja" \
-  --max_label_length 128 \
-
-  --save_steps 2500 \
-  --warmup_steps "${WARMUP_STEPS}" \
-  --learning_rate 0.0001 \
-  --lr_scheduler_type "constant_with_warmup" \
-  --logging_steps 50 \
-  --save_total_limit 1 \
-  --per_device_train_batch_size 16 \
-  --gradient_accumulation_steps 2 \
-  --preprocessing_num_workers 64 \
-  --dataloader_num_workers 1 \
-  --output_dir "./" \
-  --wandb_project "wandb.${HF_MODEL_ALIAS}" \
-  --gradient_checkpointing \
-  --push_to_hub \
-  --overwrite_output_dir \
-  --num_train_epochs 8
+distillation () {
+  export WANDB_DISABLED="true"
+  MODEL_NAME=${1}
+  MODEL_CONFIG=${2}
+  WARMUP_STEPS=${3}
+  SEED=${4}
+  echo "MODEL_NAME  : ${MODEL_NAME}"
+  echo "MODEL_CONFIG: ${MODEL_CONFIG}"
+  accelerate launch run_distillation.py \
+    --model_name_or_path "./${HF_MODEL_ALIAS}-init" \
+    --teacher_model_name_or_path "${TEACHER_MODEL}" \
+    --dataset_name_1 "${HF_ORG}/whisper_transcriptions.reazon_speech_all.wer_${WER_THRESHOLD}.vectorized" \
+    --dataset_split_name_1 "train" \
+    --dataset_config_name_1 "subset_0,subset_1,..." \
+    --dataset_feature_1 "whisper_transcription,transcription/en_gpt3.5" \
+    --dataset_language_1 "ja,en" \
+    --dataset_task_1 "transcribe,translate" \
+    --dataset_timestamp_1 "true,false" \
+    --dataset_kl_1 "true,false" \
+    --dataset_name_2 "${HF_ORG}/whisper_transcriptions.mls.wer_${WER_THRESHOLD}.vectorized" \
+    --dataset_split_name_2 "train" \
+    --dataset_config_name_2 "subset_0,subset_2,..." \
+    --dataset_feature_2 "whisper_transcription,transcription/ja_gpt3.5" \
+    --dataset_language_2 "en,ja" \
+    --dataset_task_2 "transcribe,translate" \
+    --dataset_timestamp_2 "true,false" \
+    --dataset_kl_2 "true,false" \
+    --language "ja" \
+    --max_label_length 128 \
+    --learning_rate 0.0001 \
+    --logging_steps 50 \
+    --per_device_train_batch_size 16 \
+    --gradient_accumulation_steps 2 \
+    --preprocessing_num_workers 64 \
+    --dataloader_num_workers 1 \
+    --output_dir "./" \
+    --wandb_project "wandb.${HF_MODEL_ALIAS}" \
+    --gradient_checkpointing \
+    --overwrite_output_dir \
+    --num_train_epochs 1
 
 ##########################
 # Evaluate Student Model #

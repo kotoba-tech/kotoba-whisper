@@ -179,8 +179,7 @@ distillation () {
 
 git clone "https://huggingface.co/${HF_ORG}/${HF_MODEL_ALIAS}"
 python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_0', num_proc=16)"""
-#for i in {1..8}
-for i in {6..8}
+for i in {1..8}
 do
   echo "EPOCH ${i}"
   for s in {0..8}
@@ -204,8 +203,8 @@ done
 
 i=7
 echo "EPOCH ${i}"
-python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_0', num_proc=16)"""
-for s in {7..8}
+#python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_0', num_proc=16)"""
+for s in {1..8}
 do
   if [ ${s} = 8 ]; then
     python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_0', num_proc=16)""" &

@@ -1,29 +1,23 @@
-"""Training the Whisper model for sequence to sequence speech recognition via teacher-student distillation."""
+import json
 import logging
 import os
-import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Union
+from collections import defaultdict
+from typing import Dict, List, Optional, Union
 from functools import partial
+from tqdm import tqdm
+
 import numpy as np
 import torch
 import torch.nn as nn
 from accelerate import Accelerator
 from accelerate.logging import get_logger
-from datasets import utils, IterableDataset, load_dataset, concatenate_datasets
+from datasets import utils, load_dataset, concatenate_datasets
 from huggingface_hub import Repository, create_repo
 from torch.utils.data import DataLoader
-from tqdm import tqdm
 from transformers import (
-    AddedToken,
-    HfArgumentParser,
-    Seq2SeqTrainingArguments,
-    WhisperConfig,
-    WhisperForConditionalGeneration,
-    WhisperProcessor,
-    WhisperTokenizerFast,
-    set_seed,
-    WhisperFeatureExtractor,
+    WhisperConfig, WhisperForConditionalGeneration, WhisperProcessor, WhisperTokenizerFast, WhisperFeatureExtractor,
+    set_seed, AddedToken, HfArgumentParser, Seq2SeqTrainingArguments,
 )
 from transformers.modeling_outputs import BaseModelOutput
 from transformers.utils import check_min_version
@@ -54,17 +48,17 @@ class DataTrainingArguments:
     dataset_feature_1: str = field(metadata={"help": "The feature names for the labels."})
     dataset_language_1: str = field(metadata={"help": "Language for multilingual distillation."})
     dataset_task_1: str = field(metadata={"help": "Task, either `transcribe` for speech recognition or `translate` for speech translation."})
+    dataset_timestamp_1: str = field(metadata={"help": "Whether or not to predict timestamps."})
+    dataset_kl_1: str = field(metadata={"help": "Whether or not to apply KL loss."})
     dataset_name_2: str = field(metadata={"help": "The name of the training dataset to use."})
     dataset_split_name_2: str = field(metadata={"help": "The name of the training data split to use."})
     dataset_config_name_2: str = field(metadata={"help": "The configuration name of the training dataset to use."})
     dataset_feature_2: str = field(metadata={"help": "The feature names for the labels."})
     dataset_language_2: str = field(metadata={"help": "Language for multilingual distillation."})
     dataset_task_2: str = field(metadata={"help": "Task, either `transcribe` for speech recognition or `translate` for speech translation."})
+    dataset_timestamp_2: str = field(metadata={"help": "Whether or not to predict timestamps."})
+    max_label_length: int = field(metadata={"help": "Truncate transcriptions that are longer `max_label_length`."})
     num_workers: Optional[int] = field(default=None, metadata={"help": "The number of processes for the preprocessing."})
-    max_label_length: int = field(
-        default=128,
-        metadata={"help": "Truncate transcriptions that are longer `max_label_length` tokens."},
-    )
     wandb_project: str = field(default="distil-whisper", metadata={"help": "The name of the wandb project."})
 
 
@@ -82,40 +76,26 @@ class DistillationTrainingArguments(Seq2SeqTrainingArguments):
 
 @dataclass
 class DataCollatorSpeechSeq2SeqWithPadding:
-    """Data collator that will dynamically pad the inputs received.
-    Args:
-        decoder_start_token_id (:obj: `int`): The start-of-sequence token id of the decoder.
-        max_target_length (:obj:`int`, `optional`): Maximum length of the ``labels`` of the returned list.
-    """
     model_input_name: str
     feature_extractor: WhisperFeatureExtractor
     tokenizer: WhisperTokenizerFast
     decoder_start_token_id: int
     max_target_length: int
-    feature: Dict[Dict[str]]
+    feature: List[str]
 
-    def __call__(self, features: List[Dict[str, Union[List[int], np.ndarray]]]) -> Dict[str, np.ndarray]:
-        # input audio feature
+    def __call__(self, features: List[Dict[str, Union[List[int], np.ndarray]]]):
         input_features = {self.model_input_name: [feature[self.model_input_name] for feature in features]}
         batch = self.feature_extractor.pad(input_features, padding="longest", return_tensors="pt")
-        # label feature
-        # labels = {k: [feature[k] for feature in features] for k in self.label_features}
-        # dataloader returns a list of features which we convert to a dict
-        # reformat list to dict and set to pytorch format
-        for k, v in self.feature.keys():
-            self.tokenizer.set_prefix_tokens(language=v["language"], task=v["task"], predict_timestamps=True)
-
-
-            label_features = {"input_ids": [feature[k] for feature in features]}
+        for k in self.feature:
             labels_batch = self.tokenizer.pad(
-                label_features,
+                {"input_ids": [feature[k] for feature in features]},
                 max_length=self.max_target_length,
                 padding="max_length",
-                return_tensors="pt",
+                return_tensors="pt"
             )
             # shift labels to the right to get decoder input ids
             labels = labels_batch["input_ids"]
-            decoder_input_ids = labels[:, :-1]
+            batch[f"decoder_input_ids/{k}"] = labels[:, :-1]
             labels = labels[:, 1:]
             labels_mask = labels_batch.attention_mask[:, 1:]
             # replace padding with -100 to ignore correctly when computing the loss
@@ -123,19 +103,13 @@ class DataCollatorSpeechSeq2SeqWithPadding:
             # replace initial prompt tokens with -100 to ignore correctly when computing the loss
             bos_index = torch.argmax((labels == self.decoder_start_token_id).long(), dim=1)
             bos_index = torch.where(bos_index > 0, bos_index + 1, bos_index)
-            prompt_mask = torch.arange(labels.shape[1]) < bos_index[:, None]
-            labels = torch.where(prompt_mask, -100, labels)
-            batch[f"labels/{k}"] = labels
-            batch[f"decoder_input_ids/{k}"] = decoder_input_ids
-            batch[f"tasks/{k}"] =
-            batch[f"languages/{k}"] =
+            batch[f"labels/{k}"] = torch.where(torch.arange(labels.shape[1]) < bos_index[:, None], -100, labels)
         return batch
 
 
 def get_parameter_names(model, forbidden_layer_types, forbidden_module):
-    """Returns the names of the model parameters that are not inside a forbidden layer or forbidden module.
+    """ Returns the names of the model parameters that are not inside a forbidden layer or forbidden module.
     Can be used to get a subset of parameter names for decay masks, or to exclude parameters from an optimiser
-    (e.g. if the module is frozen).
     """
     result = []
     for name, child in model.named_children():
@@ -184,9 +158,7 @@ def main():
     # 3. Handle the repository creation
     if accelerator.is_main_process:
         assert training_args.hub_model_id
-        # Create repo and retrieve repo_id
         repo_id = create_repo(training_args.hub_model_id, exist_ok=True, token=training_args.hub_token).repo_id
-        # Clone repo locally
         repo = Repository(training_args.output_dir, clone_from=repo_id, token=training_args.hub_token)
         with open(os.path.join(training_args.output_dir, ".gitignore"), "w+") as gitignore:
             if "wandb" not in gitignore:
@@ -195,16 +167,17 @@ def main():
 
     # 4. Load pretrained model, tokenizer, and feature extractor
     config = WhisperConfig.from_pretrained(model_args.model_name_or_path)
-    tokenizer = WhisperTokenizerFast.from_pretrained(model_args.model_name_or_path, use_fast=True)
+    processor = WhisperProcessor.from_pretrained(training_args.output_dir)
     # override timestamp tokens until tokenizer issues are fixed in transformers
     timestamps = [AddedToken("<|%.2f|>" % (i * 0.02), lstrip=False, rstrip=False) for i in range(1500 + 1)]
-    tokenizer.add_tokens(timestamps)
+    processor.tokenizer.add_tokens(timestamps)
     teacher_model = WhisperForConditionalGeneration.from_pretrained(
         model_args.teacher_model_name_or_path,
         low_cpu_mem_usage=True,
         torch_dtype=torch.bfloat16,
         attn_implementation=model_args.attn_implementation,
     )
+    teacher_model.generation_config.update(**{"max_length": data_args.max_label_length})
     assert hasattr(teacher_model.generation_config, "is_multilingual") and teacher_model.generation_config.is_multilingual
     student_model = WhisperForConditionalGeneration.from_pretrained(
         model_args.model_name_or_path,
@@ -213,6 +186,7 @@ def main():
         torch_dtype=torch.bfloat16,
         attn_implementation=model_args.attn_implementation,
     )
+    assert hasattr(student_model.generation_config, "is_multilingual") and student_model.generation_config.is_multilingual
     assert student_model.config.d_model == teacher_model.config.d_model
     assert student_model.config.decoder_start_token_id and teacher_model.config.decoder_start_token_id
     # enable gradient checkpointing if necessary
@@ -221,7 +195,7 @@ def main():
     # freeze student encoder if necessary
     student_model.freeze_encoder()
     student_model.model.encoder.gradient_checkpointing = False
-    processor = WhisperProcessor.from_pretrained(training_args.output_dir)
+    student_model.generation_config.update(**{"max_length": data_args.max_label_length})
 
     # 5. Define optimizer
     decay_parameters = get_parameter_names(
@@ -250,7 +224,7 @@ def main():
     student_model.train()
     teacher_model.eval()
 
-    # 6. Preprocessing the datasets
+    # 7. Preprocessing the datasets
 
     def get_dateset(name, split_name, config_name):
         dataset = []
@@ -258,59 +232,53 @@ def main():
             dataset += load_dataset(name, c, split=split_name, trust_remote_code=True, num_proc=data_args.num_workers)
         return concatenate_datasets(dataset)
 
-    def format_dataset_feature(feature, language, task):
-        feature = feature.split(",")
+    def format_dataset_feature(column, language, task, ts, kl):
+        column = column.split(",")
         language = language.split(",")
         task = task.split(",")
-        assert len(feature) == len(task) == len(language)
-        return {k: {"language": l, "task": t} for k, l, t in zip(feature, language, task)}
+        ts = [i == "true" for i in ts.split(",")]
+        kl = [i == "true" for i in kl.split(",")]
+        assert len(column) == len(task) == len(language) == len(ts) == len(kl)
+        return {s: {"la": l, "col": c, "ts": t, "kl": k} for c, l, s, t, k in zip(column, language, task, ts, kl)}
 
     collator = partial(
         DataCollatorSpeechSeq2SeqWithPadding,
         model_input_name=processor.model_input_names[0],  # "input_features"
         feature_extractor=processor.feature_extractor,
+        tokenizer=processor.tokenizer,
         decoder_start_token_id=student_model.config.decoder_start_token_id,  # <|startoftranscript|>
         max_target_length=data_args.max_label_length,
     )
     dataset_1 = get_dateset(data_args.dataset_name_1, data_args.dataset_split_1, data_args.dataset_config_name_1)
-    feature_1 = format_dataset_feature(data_args.dataset_feature_1, data_args.dataset_language_1, data_args.dataset_task_1)
-    tokenizer.set_prefix_tokens(language=data_args.language, task=data_args.task, predict_timestamps=True)
-    # student_model.generation_config.update(**{"language": data_args.language, "task": data_args.task})
-
-    collator()
-    dataset_2 = get_dateset(data_args.dataset_name_2, data_args.dataset_split_2, data_args.dataset_config_name_2)
-    feature_2 = format_dataset_feature(data_args.dataset_feature_2, data_args.dataset_language_2, data_args.dataset_task_2)
-
-    data_collator = DataCollatorSpeechSeq2SeqWithPadding(
-        processor=processor,
-        decoder_start_token_id=student_model.config.decoder_start_token_id,  # <|startoftranscript|>
-        decoder_prev_token_id=tokenizer.all_special_ids[-3],  # <|startofprev|>
-        max_target_length=data_args.max_label_length,
+    feature_1 = format_dataset_feature(
+        data_args.dataset_feature_1,
+        data_args.dataset_language_1,
+        data_args.dataset_task_1,
+        data_args.dataset_timestamp_1,
+        data_args.dataset_kl_1
     )
+    dataset_collator_1 = collator(feature=[i["column"] for i in feature_1.values()])
+    dataset_2 = get_dateset(data_args.dataset_name_2, data_args.dataset_split_2, data_args.dataset_config_name_2)
+    feature_2 = format_dataset_feature(
+        data_args.dataset_feature_2,
+        data_args.dataset_language_2,
+        data_args.dataset_task_2,
+        data_args.dataset_timestamp_2,
+        data_args.dataset_kl_2
+    )
+    dataset_collator_2 = collator(feature=[i["column"] for i in feature_2.values()])
 
-    # train_batch_size = training_args.per_device_train_batch_size * accelerator.num_processes
-    # steps_per_epoch = len(training_datasets) // (train_batch_size * training_args.gradient_accumulation_steps)
-    # total_train_steps = steps_per_epoch * training_args.num_train_epochs
-
-    # 10. Define generation arguments - we need to do this before we wrap the models in DDP
-    # so that we can still access the configs
-    if training_args.generation_num_beams is not None:
-        num_beams = training_args.generation_num_beams
-    else:
-        num_beams = getattr(student_model.generation_config, "num_beams", 1)
-    gen_kwargs = {"max_length": data_args.max_label_length, "num_beams": num_beams, "return_timestamps": True}
-    # forcing the language and task tokens helps multilingual models in their generations
-    # gen_kwargs.update({"language": data_args.language, "task": data_args.task})
+    # 8. Model distillation.
+    dataset_size = min(len(dataset_1), len(dataset_2)) * 2
+    train_batch_size = training_args.per_device_train_batch_size * accelerator.num_processes
+    steps_per_epoch = dataset_size // (train_batch_size * training_args.gradient_accumulation_steps)
+    total_train_steps = steps_per_epoch * training_args.num_train_epochs
     logger.info("***** Running training *****")
-    logger.info(f" Num examples = {total_train_steps * train_batch_size * training_args.gradient_accumulation_steps}")
     logger.info(f" Instantaneous batch size per device = {training_args.per_device_train_batch_size}")
     logger.info(f" Gradient accumulation steps = {training_args.gradient_accumulation_steps}")
     logger.info(f" Effective batch size (w. parallel & distributed) = {train_batch_size * training_args.gradient_accumulation_steps}")
     logger.info(f" Total optimization steps = {total_train_steps}")
-    train_start = time.time()
-    steps_trained_progress_bar = tqdm(
-        range(total_train_steps), desc="Train steps ... ", position=0, disable=not accelerator.is_local_main_process
-    )
+    p_bar = tqdm(range(total_train_steps), desc="Training", position=0, disable=not accelerator.is_local_main_process)
 
     def kl_divergence(teacher_logit, student_logit, labels):
         # Rescale distribution by temperature to ensure gradients scale correctly.
@@ -328,68 +296,96 @@ def main():
         # KL-divergence loss (scaled by temperature)
         return kl_loss * training_args.temperature ** 2
 
-    def train_step(batch):
+    def train_step(batch_1, batch_2):
         # Encoder output is shared across transcribe/translation and CE/KL loss.
-        encoder_outputs = BaseModelOutput(student_model(input_ids=batch["input_ids"]).encoder_last_hidden_state)
-        # Student model generation (transcription/translation).
-        student_outputs_transcription = student_model(encoder_outputs=encoder_outputs, labels=batch[TBA])
-        student_outputs_translation = student_model(encoder_outputs=encoder_outputs, labels=batch[TBA])
-        # Cross-entropy loss.
-        ce_transcription = student_outputs_transcription.loss
-        ce_translation = student_outputs_translation.loss
-        # Teacher model generation for KL loss.
-        with torch.no_grad():
-            teacher_outputs = teacher_model(encoder_outputs=encoder_outputs, labels=batch[TBA])
-        # KL loss.
-        kl_loss = kl_divergence(teacher_outputs.logits, student_outputs_transcription.logits, batch[TBA])
+        input_ids = torch.concat([batch_1["input_ids"], batch_2["input_ids"]])
+        hidden_state = student_model(input_ids=input_ids).encoder_last_hidden_state
+        # CE loss.
+        metrics = defaultdict()
+        for feature, batch in zip([feature_1, feature_2], [batch_1, batch_2]):
+            for k, v in feature.items():
+                gen_config = {"language": v["la"], "task": k, "return_timestamps": v["ts"]}
+                student_model.generation_config.update(**gen_config)
+                student_outputs = student_model(
+                    encoder_outputs=BaseModelOutput(hidden_state[:len(batch["input_ids"])]),
+                    labels=batch[f'labels/{v["col"]}'],
+                    decoder_input_ids=batch[f'decoder_input_ids/{v["col"]}']
+                )
+                metrics[f"ce_loss.{k}.{v['la']}.return_timestamps=={v['ts']}"] += student_outputs.loss
+                if v["kl"]:
+                    # KL loss.
+                    with torch.no_grad():
+                        teacher_model.generation_config.update(**gen_config)
+                        teacher_outputs = teacher_model(
+                            encoder_outputs=BaseModelOutput(hidden_state[:len(batch["input_ids"])]),
+                            labels=batch[f'labels/{v["col"]}']
+                        )
+                    metrics[f"kl_loss.{k}.{v['la']}.return_timestamps=={v['ts']}"] += kl_divergence(
+                        teacher_outputs.logits,
+                        student_outputs.logits,
+                        batch[f'labels/{v["col"]}']
+                    )
         # Use Distil-Whisper formulation (fix weight of CE loss and tune KL weight, 1 as default).
-        loss = 0.8 * (ce_transcription + ce_translation) + training_args.kl_weight * kl_loss
-        metrics = {"loss": loss, "loss/kl": kl_loss, "loss/ce_transcription": ce_transcription, "loss/ce_translation": ce_translation}
-        return loss, metrics
-
+        ce_loss = sum(v for k, v in metrics.items() if k.startswith("ce_loss."))
+        kl_loss = sum(v for k, v in metrics.items() if k.startswith("kl_loss."))
+        metrics["loss"] = 0.8 * ce_loss + training_args.kl_weight * kl_loss
+        return metrics["loss"], metrics
 
     cur_step = 0
-
-
     for epoch in range(training_args.num_train_epochs):
-        training_datasets = training_datasets.shuffle(training_args.seed)
-        train_dataloader = DataLoader(
-            training_datasets,
-            collate_fn=data_collator,
-            batch_size=training_args.per_device_train_batch_size,
-            num_workers=training_args.dataloader_num_workers,
-            pin_memory=training_args.dataloader_pin_memory,
+        # Set up two data loaders for each dataset.
+        dataset_1 = dataset_1.shuffle(training_args.seed)
+        loader_1 = accelerator.prepare(
+            DataLoader(
+                dataset_1,
+                collate_fn=dataset_collator_1,
+                batch_size=int(training_args.per_device_train_batch_size / 2),
+                num_workers=training_args.dataloader_num_workers,
+                pin_memory=training_args.dataloader_pin_memory,
+            )
         )
-        train_dataloader = accelerator.prepare(train_dataloader)
-        if hasattr(train_dataloader, "dataset") and isinstance(train_dataloader.dataset, IterableDataset):
-            train_dataloader.dataset.set_epoch(epoch)
-        for single_batch in train_dataloader:
+        loader_1.dataset.set_epoch(epoch)
+        dataset_2 = dataset_2.shuffle(training_args.seed)
+        loader_2 = accelerator.prepare(
+            DataLoader(
+                dataset_2,
+                collate_fn=dataset_collator_2,
+                batch_size=int(training_args.per_device_train_batch_size / 2),
+                num_workers=training_args.dataloader_num_workers,
+                pin_memory=training_args.dataloader_pin_memory,
+            )
+        )
+        loader_2.dataset.set_epoch(epoch)
+        # Use the 2nd loader as an iterator
+        loader_2_iterator = iter(loader_2)
+        for single_batch_1 in loader_1:
+            try:
+                single_batch_2 = next(loader_2_iterator)
+            except StopIteration:
+                break
+
             with accelerator.accumulate(student_model):
-                loss, train_metric = train_step(single_batch)
+                loss, train_metric = train_step(single_batch_1, single_batch_2)
                 accelerator.backward(loss)
                 if accelerator.sync_gradients:
                     accelerator.clip_grad_norm_(student_model.parameters(), training_args.max_grad_norm)
                 optimizer.step()
                 optimizer.zero_grad()
             if accelerator.sync_gradients:
-                steps_trained_progress_bar.update(1)
+                p_bar.update(1)
                 cur_step += 1
                 if cur_step % training_args.logging_steps == 0:
-                    tmp_time = time.time() - train_start
-                    steps_trained_progress_bar.write(
-                        f"[Step {cur_step} / {total_train_steps}]: Loss:  {train_metric['loss']}"
-                    )
-                    train_metric.update({f"time": tmp_time, f"epoch": epoch})
-                    accelerator.log(train_metric, step=cur_step)
-            accelerator.wait_for_everyone()
-            if accelerator.is_main_process:
-                logger.info("push_to_hub final model")
-                accelerator.unwrap_model(student_model).save_pretrained(training_args.output_dir)
-                repo.push_to_hub(
-                    commit_message=f"Saving train state of step {cur_step} (epoch: {epoch}): "
-                                   f"{data_args.train_dataset_name}-{data_args.train_dataset_config_name}",
-                    blocking=False,
-                )
+                    p_bar.write(f"[{cur_step} / {total_train_steps}]\n{json.dumps(train_metric, indent=4)}")
+                    accelerator.log(train_metric)
+        accelerator.wait_for_everyone()
+        if accelerator.is_main_process:
+            logger.info(f"save_pretrained to {training_args.output_dir}")
+            accelerator.unwrap_model(student_model).save_pretrained(training_args.output_dir)
+            logger.info(f"push_to_hub to {training_args.hub_model_id}")
+            repo.push_to_hub(
+                commit_message=f"Saving train state of step {cur_step} (epoch: {epoch})",
+                blocking=False,
+            )
     logger.info("close the training job")
     accelerator.end_training()
 
