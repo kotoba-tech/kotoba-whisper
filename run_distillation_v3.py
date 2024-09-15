@@ -265,7 +265,7 @@ def main():
         data_args.dataset_timestamp_1,
         data_args.dataset_kl_1
     )
-    dataset_collator_1 = collator(feature=[i["column"] for i in feature_1.values()])
+    dataset_collator_1 = collator(feature=[i["col"] for i in feature_1.values()])
     dataset_2 = get_dateset(data_args.dataset_name_2, data_args.dataset_split_name_2, data_args.dataset_config_name_2)
     feature_2 = format_dataset_feature(
         data_args.dataset_feature_2,
@@ -274,7 +274,7 @@ def main():
         data_args.dataset_timestamp_2,
         data_args.dataset_kl_2
     )
-    dataset_collator_2 = collator(feature=[i["column"] for i in feature_2.values()])
+    dataset_collator_2 = collator(feature=[i["col"] for i in feature_2.values()])
 
     # 8. Model distillation.
     dataset_size = min(len(dataset_1), len(dataset_2)) * 2
