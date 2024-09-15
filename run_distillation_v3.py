@@ -305,12 +305,14 @@ def main():
         # Encoder output is shared across transcribe/translation and CE/KL loss.
         input_features = torch.concat([batch_1["input_features"], batch_2["input_features"]])
         # hidden_state = student_model(input_features=input_features).encoder_last_hidden_state
-        hidden_state = encoder(input_features=input_features).last_hidden_state
-        hidden_state_1 = hidden_state[:len(batch_1["input_features"])]
-        hidden_state_2 = hidden_state[len(batch_1["input_features"]):]
+        # hidden_state = encoder(input_features=input_features).last_hidden_state
+        # hidden_state_1 = hidden_state[:len(batch_1["input_features"])]
+        # hidden_state_2 = hidden_state[len(batch_1["input_features"]):]
         # CE loss.
         metrics = {}
-        for feature, batch, hidden in zip([feature_1, feature_2], [batch_1, batch_2], [hidden_state_1, hidden_state_2]):
+        # for feature, batch, hidden in zip([feature_1, feature_2], [batch_1, batch_2], [hidden_state_1, hidden_state_2]):
+        for feature, batch in zip([feature_1, feature_2], [batch_1, batch_2]):
+            hidden = encoder(batch["input_features"]).last_hidden_state
             for k, v in feature.items():
                 gen_config = {"language": v["la"], "task": k, "return_timestamps": v["ts"]}
                 accelerator.unwrap_model(student_model).generation_config.update(**gen_config)
