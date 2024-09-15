@@ -306,7 +306,7 @@ def main():
             # hidden = None
             for k, v in feature.items():
                 gen_config = {"language": v["la"], "task": k, "return_timestamps": v["ts"]}
-                accelerator.unwrap_model(student_model).generation_config.update(**gen_config)
+                # accelerator.unwrap_model(student_model).generation_config.update(**gen_config)
                 # if hidden is None:
                 student_outputs = student_model(
                     input_features=batch["input_features"],
@@ -330,6 +330,7 @@ def main():
                 #         teacher_outputs.logits, student_outputs.logits, batch[f'labels/{v["col"]}']
                 #     )
         # Use Distil-Whisper formulation (fix weight of CE loss and tune KL weight, 1 as default).
+        print(metrics)
         ce_loss = sum(v for k, v in metrics.items() if k.startswith("ce_loss."))
         kl_loss = sum(v for k, v in metrics.items() if k.startswith("kl_loss."))
         metrics["loss"] = 0.8 * ce_loss + training_args.kl_weight * kl_loss
