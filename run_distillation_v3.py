@@ -379,7 +379,7 @@ def main():
                 p_bar.update(1)
                 cur_step += 1
                 if cur_step % training_args.logging_steps == 0:
-                    p_bar.write(f"[{cur_step} / {total_train_steps}]\n{json.dumps(train_metric, indent=4)}")
+                    p_bar.write(f"[{cur_step} / {total_train_steps}]: {train_metric}")
                     accelerator.log(train_metric)
         accelerator.wait_for_everyone()
         if accelerator.is_main_process:
