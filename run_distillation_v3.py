@@ -320,13 +320,13 @@ def main():
                         labels=batch[f'labels/{v["col"]}'],
                         decoder_input_ids=batch[f'decoder_input_ids/{v["col"]}']
                     )
-                metrics[f"ce_loss.{k}.{v['la']}.return_timestamps=={v['ts']}"] = student_outputs.loss
+                metrics[f"ce_loss.{k}.{v['la']}"] = student_outputs.loss
                 if v["kl"]:
                     # KL loss.
                     with torch.no_grad():
                         accelerator.unwrap_model(teacher_model).generation_config.update(**gen_config)
                         teacher_outputs = teacher_model(encoder_outputs=hidden, labels=batch[f'labels/{v["col"]}'])
-                    metrics[f"kl_loss.{k}.{v['la']}.return_timestamps=={v['ts']}"] = kl_divergence(
+                    metrics[f"kl_loss.{k}.{v['la']}"] = kl_divergence(
                         teacher_outputs.logits, student_outputs.logits, batch[f'labels/{v["col"]}']
                     )
         # Use Distil-Whisper formulation (fix weight of CE loss and tune KL weight, 1 as default).
@@ -380,7 +380,7 @@ def main():
                 cur_step += 1
                 if cur_step % training_args.logging_steps == 0:
                     p_bar.write(
-                        f"[{cur_step} / {total_train_steps}]:\n{'\n'.join([f'{k}: {v.item()}' for k, v in metric.items()])}"
+                        f"[{cur_step} / {total_train_steps}]: {','.join([f'{k}: {v.item()}' for k, v in metric.items()])}"
                     )
                     accelerator.log(metric)
         accelerator.wait_for_everyone()
