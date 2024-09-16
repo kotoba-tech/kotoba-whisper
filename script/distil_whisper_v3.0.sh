@@ -213,7 +213,7 @@ cd ../
 import os
 from random import shuffle, seed, randint
 
-partion_size = 20
+partion_size = 40
 epoch = 8
 ja_data_range = list(range(223))
 en_data_range = list(range(138))

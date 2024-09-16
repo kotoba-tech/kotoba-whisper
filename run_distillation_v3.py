@@ -378,9 +378,9 @@ def main():
             if accelerator.sync_gradients:
                 p_bar.update(1)
                 cur_step += 1
-                if cur_step % training_args.logging_steps == 0:
+                if accelerator.is_main_process and cur_step % training_args.logging_steps == 0:
                     p_bar.write(
-                        f"[{cur_step} / {total_train_steps}]: {','.join([f'{k}: {v.item()}' for k, v in metric.items()])}"
+                        f"[{cur_step}/{total_train_steps}]: {', '.join([f'{k}: {v.item()}' for k, v in metric.items()])}"
                     )
                     accelerator.log(metric)
         accelerator.wait_for_everyone()
@@ -392,14 +392,17 @@ def main():
                 commit_message=f"Saving train state of step {cur_step} (epoch: {epoch})",
                 blocking=False,
             )
-    logger.info("close the training job")
-    home = os.path.expanduser('~')
-    for dataset_name in [data_args.dataset_name_1, data_args.dataset_name_2]:
-        for c in data_args.dataset_config_name_1.split(","):
-            rmtree(f"{home}/.cache/huggingface/datasets/{dataset_name.replace('/', '___')}/{c}")
-    rmtree(f"{home}/.cache/huggingface/datasets/downloads")
-    accelerator.end_training()
+        accelerator.wait_for_everyone()
 
+    accelerator.wait_for_everyone()
+    if accelerator.is_main_process:
+        home = os.path.expanduser('~')
+        for dataset_name in [data_args.dataset_name_1, data_args.dataset_name_2]:
+            for c in data_args.dataset_config_name_1.split(","):
+                rmtree(f"{home}/.cache/huggingface/datasets/{dataset_name.replace('/', '___')}/{c}")
+        rmtree(f"{home}/.cache/huggingface/datasets/downloads")
+    logger.info("close the training job")
+    accelerator.end_training()
 
 if __name__ == "__main__":
     main()
