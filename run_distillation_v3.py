@@ -402,8 +402,8 @@ def main():
                 [data_args.dataset_config_name_1, data_args.dataset_config_name_2]
         ):
             for c in dataset_config.split(","):
-                rmtree(f"{home}/.cache/huggingface/datasets/{dataset_name.replace('/', '___')}/{c}")
-        rmtree(f"{home}/.cache/huggingface/datasets/downloads")
+                rmtree(f"{home}/.cache/huggingface/datasets/{dataset_name.replace('/', '___')}/{c}", ignore_errors=True)
+        rmtree(f"{home}/.cache/huggingface/datasets/downloads", ignore_errors=True)
     logger.info("close the training job")
     accelerator.end_training()
 
