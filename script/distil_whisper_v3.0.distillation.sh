@@ -45,7 +45,6 @@ distillation () {
     --num_train_epochs 1
 }
 
-distillation 'subset_162' 'subset_67' '88039'
 
 # Epoch 1
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.reazon_speech_all.wer_10.0.vectorized' -c 'subset_105,subset_195,subset_168,subset_52,subset_208' &
@@ -60,6 +59,8 @@ distillation 'subset_212,subset_159,subset_110,subset_123,subset_121' 'subset_72
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.reazon_speech_all.wer_10.0.vectorized' -c 'subset_16,subset_84,subset_135,subset_29,subset_215' &
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.mls.wer_10.0.vectorized' -c 'subset_74,subset_40,subset_75' &
 distillation 'subset_98,subset_181,subset_60,subset_13,subset_44' 'subset_26,subset_131,subset_38' '59929'
+rm -rf ~/.cache/huggingface/hub/datasets*
+
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.reazon_speech_all.wer_10.0.vectorized' -c 'subset_21,subset_169,subset_194,subset_30,subset_127' &
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.mls.wer_10.0.vectorized' -c 'subset_98,subset_117,subset_22' &
 distillation 'subset_16,subset_84,subset_135,subset_29,subset_215' 'subset_74,subset_40,subset_75' '41441'
