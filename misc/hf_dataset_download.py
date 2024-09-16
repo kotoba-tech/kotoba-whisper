@@ -5,7 +5,7 @@ from datasets import load_dataset
 parser = argparse.ArgumentParser(description='Preprocessing dataset.')
 parser.add_argument('-d', '--dataset', type=str)
 parser.add_argument('-c', '--config', type=str)
-parser.add_argument('-n', '--num', type=int, default=1)
+parser.add_argument('-n', '--num', type=int, default=64)
 arg = parser.parse_args()
 for n in arg.config.split(","):
     while True:
