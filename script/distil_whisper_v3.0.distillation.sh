@@ -45,6 +45,8 @@ distillation () {
     --num_train_epochs 1
 }
 
+distillation 'subset_162' 'subset_67' '88039'
+
 # Epoch 1
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.reazon_speech_all.wer_10.0.vectorized' -c 'subset_105,subset_195,subset_168,subset_52,subset_208' &
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.mls.wer_10.0.vectorized' -c 'subset_78,subset_134,subset_14' &

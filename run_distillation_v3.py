@@ -397,12 +397,16 @@ def main():
     accelerator.wait_for_everyone()
     if accelerator.is_main_process:
         home = os.path.expanduser('~')
-        for dataset_name in [data_args.dataset_name_1, data_args.dataset_name_2]:
-            for c in data_args.dataset_config_name_1.split(","):
+        for dataset_name, dataset_config in zip(
+                [data_args.dataset_name_1, data_args.dataset_name_2],
+                [data_args.dataset_config_name_1, data_args.dataset_config_name_2]
+        ):
+            for c in dataset_config.split(","):
                 rmtree(f"{home}/.cache/huggingface/datasets/{dataset_name.replace('/', '___')}/{c}")
         rmtree(f"{home}/.cache/huggingface/datasets/downloads")
     logger.info("close the training job")
     accelerator.end_training()
+
 
 if __name__ == "__main__":
     main()
