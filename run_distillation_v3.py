@@ -386,7 +386,7 @@ def main():
             accelerator.unwrap_model(student_model).save_pretrained(training_args.output_dir)
             logger.info(f"push_to_hub to {repo_name}")
             repo.push_to_hub(
-                commit_message=f"Saving train state of step {cur_step} (epoch: {epoch})",
+                commit_message=f"epoch: {epoch}, config_1: {data_args.dataset_config_name_1}, config_2: {data_args.dataset_config_name_2}",
                 blocking=False,
             )
         accelerator.wait_for_everyone()
