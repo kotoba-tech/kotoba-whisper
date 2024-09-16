@@ -201,7 +201,7 @@ do
   done
 done
 
-i=7
+i=8
 echo "EPOCH ${i}"
 python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_0', num_proc=16)"""
 for s in {1..8}
@@ -216,43 +216,6 @@ do
   rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized/split_${s}"
   rm -rf "${HOME}/.cache/huggingface/datasets/downloads"
 done
-
-s=0
-distillation "${HF_MODEL_ALIAS}" "split_${s}" "0" ${i}
-rm -rf ${HF_MODEL_ALIAS}/checkpoint-*
-rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized/split_${s}"
-rm -rf "${HOME}/.cache/huggingface/datasets/downloads"
-s=1
-python -c """from datasets import load_dataset; load_dataset('${HF_ORG}/${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized', 'split_1', num_proc=16)"""
-distillation "${HF_MODEL_ALIAS}" "split_${s}" "0" ${i}
-rm -rf ${HF_MODEL_ALIAS}/checkpoint-*
-rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized/split_${s}"
-rm -rf "${HOME}/.cache/huggingface/datasets/downloads"
-s=3
-distillation "${HF_MODEL_ALIAS}" "split_${s}" "0" ${i}
-rm -rf ${HF_MODEL_ALIAS}/checkpoint-*
-rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized/split_${s}"
-rm -rf "${HOME}/.cache/huggingface/datasets/downloads"
-s=5
-distillation "${HF_MODEL_ALIAS}" "split_${s}" "0" ${i}
-rm -rf ${HF_MODEL_ALIAS}/checkpoint-*
-rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized/split_${s}"
-rm -rf "${HOME}/.cache/huggingface/datasets/downloads"
-s=6
-distillation "${HF_MODEL_ALIAS}" "split_${s}" "0" ${i}
-rm -rf ${HF_MODEL_ALIAS}/checkpoint-*
-rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized/split_${s}"
-rm -rf "${HOME}/.cache/huggingface/datasets/downloads"
-s=7
-distillation "${HF_MODEL_ALIAS}" "split_${s}" "0" ${i}
-rm -rf ${HF_MODEL_ALIAS}/checkpoint-*
-rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized/split_${s}"
-rm -rf "${HOME}/.cache/huggingface/datasets/downloads"
-s=8
-distillation "${HF_MODEL_ALIAS}" "split_${s}" "0" ${i}
-rm -rf ${HF_MODEL_ALIAS}/checkpoint-*
-rm -rf "${HOME}/.cache/huggingface/datasets/${HF_ORG}___${HF_DATASET_ALIAS}.wer_${WER_THRESHOLD}.vectorized/split_${s}"
-rm -rf "${HOME}/.cache/huggingface/datasets/downloads"
 
 
 

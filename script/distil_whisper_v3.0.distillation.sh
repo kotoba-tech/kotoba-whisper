@@ -2,6 +2,8 @@ export WER_THRESHOLD=10.0  # WER threshold applied at data filtering.
 export TEACHER_MODEL="openai/whisper-large-v3"  # Teacher model for the distillation.
 export HF_ORG="japanese-asr"  # HuggingFace organization to push the artifacts
 export HF_MODEL_ALIAS="distil-whisper-bilingual"  # Model alias used when pushing models.
+git lfs install
+git clone "https://huggingface.co/${HF_ORG}/${HF_MODEL_ALIAS}"
 
 
 distillation () {
@@ -46,6 +48,7 @@ distillation () {
 }
 
 
+
 # Epoch 1
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.reazon_speech_all.wer_10.0.vectorized' -c 'subset_105,subset_195,subset_168,subset_52,subset_208' &
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.mls.wer_10.0.vectorized' -c 'subset_78,subset_134,subset_14' &
@@ -60,16 +63,17 @@ python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.rea
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.mls.wer_10.0.vectorized' -c 'subset_74,subset_40,subset_75' &
 distillation 'subset_98,subset_181,subset_60,subset_13,subset_44' 'subset_26,subset_131,subset_38' '59929'
 rm -rf ~/.cache/huggingface/hub/datasets*
-
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.reazon_speech_all.wer_10.0.vectorized' -c 'subset_21,subset_169,subset_194,subset_30,subset_127' &
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.mls.wer_10.0.vectorized' -c 'subset_98,subset_117,subset_22' &
 distillation 'subset_16,subset_84,subset_135,subset_29,subset_215' 'subset_74,subset_40,subset_75' '41441'
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.reazon_speech_all.wer_10.0.vectorized' -c 'subset_175,subset_4,subset_42,subset_47,subset_5' &
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.mls.wer_10.0.vectorized' -c 'subset_53,subset_47,subset_48' &
 distillation 'subset_21,subset_169,subset_194,subset_30,subset_127' 'subset_98,subset_117,subset_22' '98548'
+
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.reazon_speech_all.wer_10.0.vectorized' -c 'subset_77,subset_3,subset_15,subset_216,subset_190' &
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.mls.wer_10.0.vectorized' -c 'subset_64,subset_63,subset_25' &
 distillation 'subset_175,subset_4,subset_42,subset_47,subset_5' 'subset_53,subset_47,subset_48' '9508'
+
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.reazon_speech_all.wer_10.0.vectorized' -c 'subset_205,subset_81,subset_192,subset_99,subset_133' &
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.mls.wer_10.0.vectorized' -c 'subset_19,subset_28,subset_5' &
 distillation 'subset_77,subset_3,subset_15,subset_216,subset_190' 'subset_64,subset_63,subset_25' '1220'
