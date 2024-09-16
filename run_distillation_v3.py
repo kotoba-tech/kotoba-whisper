@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 from dataclasses import dataclass, field
@@ -348,7 +347,6 @@ def main():
                 pin_memory=training_args.dataloader_pin_memory,
             )
         )
-        # loader_1.dataset.set_epoch(epoch)
         dataset_2 = dataset_2.shuffle(training_args.seed)
         loader_2 = accelerator.prepare(
             DataLoader(
@@ -359,7 +357,6 @@ def main():
                 pin_memory=training_args.dataloader_pin_memory,
             )
         )
-        # loader_2.dataset.set_epoch(epoch)
         # Use the 2nd loader as an iterator
         loader_2_iterator = iter(loader_2)
         for single_batch_1 in loader_1:
