@@ -1,4 +1,13 @@
-"""Compute CER/WER for Japanese ASR models."""
+"""Compute CER/WER for Japanese ASR models.
+- Requirement for Nemo model
+git clone https://github.com/reazon-research/ReazonSpeech
+pip install --upgrade pip setuptools wheel
+pip install --upgrade cython
+pip install cython_bbox
+pip install ReazonSpeech/pkg/nemo-asr
+pip install numpy==1.26.4
+sudo apt install ffmpeg
+"""
 import json
 import os
 import argparse
@@ -6,6 +15,7 @@ from pprint import pprint
 
 import torch
 import pandas as pd
+from audiocraft.data.audio_dataset import AudioDataset
 from transformers import pipeline
 from transformers.models.whisper.english_normalizer import BasicTextNormalizer
 from datasets import load_dataset
@@ -75,6 +85,15 @@ metric = {"model": arg.model, "dataset": arg.dataset, "chunk_length_s": arg.chun
 if arg.model in ["kotoba-tech/kotoba-whisper-v1.1"]:
     pipe = pipeline(trust_remote_code=True, punctuator=arg.punctuator, stable_ts=arg.stable_ts, **pipeline_config)
     stable_ts, punctuator = arg.stable_ts, arg.punctuator
+elif arg.model in ["reazon-research/reazonspeech-nemo-v2"]:
+    from reazonspeech.nemo.asr import load_model, transcribe, interface
+    model = load_model()
+
+    def pipe(audio_input, generate_kwargs):
+        texts = []
+        for i in audio_input:
+            texts += [transcribe(model, interface.AudioData(waveform=i["array"], samplerate=i["sampling_rate"])).text]
+        return [{"text": i} for i in texts]
 else:
     pipe = pipeline("automatic-speech-recognition", **pipeline_config)
     stable_ts, punctuator = None, None
