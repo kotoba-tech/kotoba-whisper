@@ -81,6 +81,7 @@ pipeline_config = dict(
 
 # instantiate pipeline
 metric = {"model": arg.model, "dataset": arg.dataset, "chunk_length_s": arg.chunk_length}
+stable_ts, punctuator = None, None
 if arg.model in ["kotoba-tech/kotoba-whisper-v1.1"]:
     pipe = pipeline(trust_remote_code=True, punctuator=arg.punctuator, stable_ts=arg.stable_ts, **pipeline_config)
     stable_ts, punctuator = arg.stable_ts, arg.punctuator
@@ -93,9 +94,9 @@ elif arg.model in ["reazon-research/reazonspeech-nemo-v2"]:
         for i in audio_input:
             texts += [transcribe(model, interface.AudioData(waveform=i["array"], samplerate=i["sampling_rate"])).text]
         return [{"text": i} for i in texts]
+
 else:
     pipe = pipeline("automatic-speech-recognition", **pipeline_config)
-    stable_ts, punctuator = None, None
 metric.update({"punctuator": punctuator, "stable_ts": stable_ts})
 
 # load the dataset and get prediction
