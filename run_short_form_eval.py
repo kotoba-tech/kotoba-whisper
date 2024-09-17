@@ -15,7 +15,6 @@ from pprint import pprint
 
 import torch
 import pandas as pd
-from audiocraft.data.audio_dataset import AudioDataset
 from transformers import pipeline
 from transformers.models.whisper.english_normalizer import BasicTextNormalizer
 from datasets import load_dataset
