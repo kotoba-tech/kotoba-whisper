@@ -62,7 +62,6 @@ distillation 'subset_212,subset_159,subset_110,subset_123,subset_121' 'subset_72
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.reazon_speech_all.wer_10.0.vectorized' -c 'subset_16,subset_84,subset_135,subset_29,subset_215' &
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.mls.wer_10.0.vectorized' -c 'subset_74,subset_40,subset_75' &
 distillation 'subset_98,subset_181,subset_60,subset_13,subset_44' 'subset_26,subset_131,subset_38' '59929'
-rm -rf ~/.cache/huggingface/hub/datasets*
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.reazon_speech_all.wer_10.0.vectorized' -c 'subset_21,subset_169,subset_194,subset_30,subset_127' &
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.mls.wer_10.0.vectorized' -c 'subset_98,subset_117,subset_22' &
 distillation 'subset_16,subset_84,subset_135,subset_29,subset_215' 'subset_74,subset_40,subset_75' '41441'
@@ -72,11 +71,9 @@ distillation 'subset_21,subset_169,subset_194,subset_30,subset_127' 'subset_98,s
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.reazon_speech_all.wer_10.0.vectorized' -c 'subset_77,subset_3,subset_15,subset_216,subset_190' &
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.mls.wer_10.0.vectorized' -c 'subset_64,subset_63,subset_25' &
 distillation 'subset_175,subset_4,subset_42,subset_47,subset_5' 'subset_53,subset_47,subset_48' '9508'
-
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.reazon_speech_all.wer_10.0.vectorized' -c 'subset_205,subset_81,subset_192,subset_99,subset_133' &
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.mls.wer_10.0.vectorized' -c 'subset_19,subset_28,subset_5' &
 distillation 'subset_77,subset_3,subset_15,subset_216,subset_190' 'subset_64,subset_63,subset_25' '1220'
-
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.reazon_speech_all.wer_10.0.vectorized' -c 'subset_66,subset_145,subset_73,subset_10,subset_122' &
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.mls.wer_10.0.vectorized' -c 'subset_107,subset_2,subset_81' &
 distillation 'subset_205,subset_81,subset_192,subset_99,subset_133' 'subset_19,subset_28,subset_5' '60068'
@@ -171,10 +168,10 @@ distillation 'subset_178,subset_40,subset_1,subset_71,subset_150' 'subset_52,sub
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.reazon_speech_all.wer_10.0.vectorized' -c 'subset_166,subset_183,subset_50,subset_143,subset_220' &
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.mls.wer_10.0.vectorized' -c 'subset_118,subset_73,subset_112' &
 distillation 'subset_114,subset_56,subset_107,subset_210,subset_179' 'subset_100,subset_31,subset_128' '34664'
-distillation 'subset_166,subset_183,subset_50,subset_143,subset_220' 'subset_118,subset_73,subset_112' '34664'
-# Epoch 2
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.reazon_speech_all.wer_10.0.vectorized' -c 'subset_14,subset_5,subset_134,subset_83,subset_220' &
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.mls.wer_10.0.vectorized' -c 'subset_10,subset_80,subset_74' &
+distillation 'subset_166,subset_183,subset_50,subset_143,subset_220' 'subset_118,subset_73,subset_112' '34664'
+# Epoch 2
 distillation 'subset_166,subset_183,subset_50,subset_143,subset_220' 'subset_118,subset_73,subset_112' '14168'
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.reazon_speech_all.wer_10.0.vectorized' -c 'subset_72,subset_39,subset_191,subset_85,subset_2' &
 python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.mls.wer_10.0.vectorized' -c 'subset_30,subset_133,subset_75' &

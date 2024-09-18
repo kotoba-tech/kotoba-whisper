@@ -39,7 +39,13 @@ output_metric_file = f"{arg.output_dir}/metric.jsonl"
 if arg.pretty_table:
     with open(output_metric_file) as f:
         metrics = [json.loads(s) for s in f.read().split("\n") if len(s) > 0]
-    df_metric = pd.DataFrame(metrics).round(1).sort_values(["dataset", "model"])
+    df_metric = pd.DataFrame(metrics).sort_values(["dataset", "model", "chunk_length_s", "punctuator", "stable_ts"])
+    df_metric = df_metric.drop_duplicates(["dataset", "model", "chunk_length_s", "punctuator", "stable_ts"])
+    metrics = [i.to_dict() for _, i in df_metric.iterrows()]
+    with open(output_metric_file, "w") as f:
+        f.write("\n".join([json.dumps(i) for i in metrics]))
+
+    df_metric = df_metric.round(1)
     df_metric["cer/wer (norm)"] = [f"{c}/{w}" for c, w in zip(df_metric["cer_norm"], df_metric["wer_norm"])]
     df_metric["cer/wer (raw)"] = [f"{c}/{w}" for c, w in zip(df_metric["cer_raw"], df_metric["wer_raw"])]
 
@@ -82,33 +88,45 @@ pipeline_config = dict(
 # instantiate pipeline
 metric = {"model": arg.model, "dataset": arg.dataset, "chunk_length_s": arg.chunk_length}
 stable_ts, punctuator = None, None
-if arg.model in ["kotoba-tech/kotoba-whisper-v1.1", "kotoba-tech/kotoba-whisper-v2.1"]:
-    pipe = pipeline(trust_remote_code=True, punctuator=arg.punctuator, stable_ts=arg.stable_ts, **pipeline_config)
-    stable_ts, punctuator = arg.stable_ts, arg.punctuator
-elif arg.model in ["reazon-research/reazonspeech-nemo-v2"]:
-    from reazonspeech.nemo.asr import load_model, transcribe, interface
-    model = load_model()
-
-    def pipe(audio_input, generate_kwargs):
-        texts = []
-        for i in audio_input:
-            texts += [transcribe(model, interface.AudioData(waveform=i["array"], samplerate=i["sampling_rate"])).text]
-        return [{"text": i} for i in texts]
-
+prediction_path = f"{arg.output_dir}/model-{os.path.basename(arg.model)}.dataset-{os.path.basename(arg.dataset)}.stable-ts-{stable_ts}.punctuator-{punctuator}.chunk_length-{arg.chunk_length}.csv"
+if os.path.exists(prediction_path):
+    df = pd.read_csv(prediction_path)
+    prediction_norm = df["prediction_norm"].values.tolist()
+    references_norm = df["reference_norm"].values.tolist()
+    prediction_raw = df["prediction_raw"].values.tolist()
+    references_raw = df["reference_raw"].values.tolist()
+    audio_id = df["id"].values.tolist()
+    if arg.model in ["kotoba-tech/kotoba-whisper-v1.1", "kotoba-tech/kotoba-whisper-v2.1"]:
+        stable_ts, punctuator = arg.stable_ts, arg.punctuator
 else:
-    pipe = pipeline("automatic-speech-recognition", **pipeline_config)
-metric.update({"punctuator": punctuator, "stable_ts": stable_ts})
+    if arg.model in ["kotoba-tech/kotoba-whisper-v1.1", "kotoba-tech/kotoba-whisper-v2.1"]:
+        pipe = pipeline(trust_remote_code=True, punctuator=arg.punctuator, stable_ts=arg.stable_ts, **pipeline_config)
+        stable_ts, punctuator = arg.stable_ts, arg.punctuator
+    elif arg.model in ["reazon-research/reazonspeech-nemo-v2"]:
+        from reazonspeech.nemo.asr import load_model, transcribe, interface
+        model = load_model()
 
-# load the dataset and get prediction
-dataset = load_dataset(arg.dataset, split="test")
-output = pipe(dataset['audio'], generate_kwargs=generate_kwargs)
-normalizer = BasicTextNormalizer()
-prediction_norm = [normalizer(i['text']).replace(" ", "") for i in output]
-references_norm = [normalizer(i).replace(" ", "").replace("。.", "。") for i in dataset['transcription']]
-prediction_raw = [i['text'].replace(" ", "") for i in output]
-references_raw = [i.replace(" ", "").replace("。.", "。") for i in dataset['transcription']]
+        def pipe(audio_input, generate_kwargs):
+            texts = []
+            for i in audio_input:
+                texts += [transcribe(model, interface.AudioData(waveform=i["array"], samplerate=i["sampling_rate"])).text]
+            return [{"text": i} for i in texts]
+
+    else:
+        pipe = pipeline("automatic-speech-recognition", **pipeline_config)
+
+    # load the dataset and get prediction
+    dataset = load_dataset(arg.dataset, split="test")
+    output = pipe(dataset['audio'], generate_kwargs=generate_kwargs)
+    normalizer = BasicTextNormalizer()
+    prediction_norm = [normalizer(i['text']).replace(" ", "") for i in output]
+    references_norm = [normalizer(i).replace(" ", "").replace("。.", "。") for i in dataset['transcription']]
+    prediction_raw = [i['text'].replace(" ", "") for i in output]
+    references_raw = [i.replace(" ", "").replace("。.", "。") for i in dataset['transcription']]
+    audio_id = [i["path"] for i in dataset['audio']]
 
 # compute metrics
+metric.update({"punctuator": punctuator, "stable_ts": stable_ts})
 cer_metric = load("cer")
 cer_norm = 100 * cer_metric.compute(predictions=prediction_norm, references=references_norm)
 cer_raw = 100 * cer_metric.compute(predictions=prediction_raw, references=references_raw)
@@ -129,7 +147,6 @@ with open(output_metric_file, "w") as f:
     f.write("\n".join([json.dumps(s) for s in metrics]))
 
 # save prediction
-audio_id = [i["path"] for i in dataset['audio']]
 df = pd.DataFrame(
     [audio_id, references_norm, prediction_norm, references_raw, prediction_raw],
     index=["id", "reference_norm", "prediction_norm", "reference_raw", "prediction_raw"]
