@@ -10,8 +10,10 @@ Reproducing Kotoba-whisper models requires following five stages to be completed
 7. [Evaluate Model](#7-evaluate-model)
 
 To reproduce kotoba-whisper models, please refer the following scripts:
-- [kotoba-tech/kotoba-whisper-v1.0](https://huggingface.co/kotoba-tech/kotoba-whisper-v1.0): [kotoba_whisper_v1.0.sh](kotoba_whisper_v1.0.sh)
+- [kotoba-tech/kotoba-whisper-v2.1](https://huggingface.co/kotoba-tech/kotoba-whisper-v2.1): [kotoba_whisper_v2.1.sh](kotoba_whisper_v2.1.sh)
+- [kotoba-tech/kotoba-whisper-v2.0](https://huggingface.co/kotoba-tech/kotoba-whisper-v2.0): [kotoba_whisper_v2.0.sh](kotoba_whisper_v2.0.sh)
 - [kotoba-tech/kotoba-whisper-v1.1](https://huggingface.co/kotoba-tech/kotoba-whisper-v1.1): [kotoba_whisper_v1.1.sh](kotoba_whisper_v1.1.sh)
+- [kotoba-tech/kotoba-whisper-v1.0](https://huggingface.co/kotoba-tech/kotoba-whisper-v1.0): [kotoba_whisper_v1.0.sh](kotoba_whisper_v1.0.sh)
 
 ## 1. Setup
 Clone the repo and configure your huggingface environment.
@@ -185,25 +187,118 @@ all the models and datasets for such ablation study can be found at https://hugg
 Following tables are summaries of WER and CER for the distil-whisper model on different size of ReazonSpeech against
 OpenAI whisper models (the model names follow  `distil-whisper-large-v3-ja-reazonspeech-{size of reazonspeech}`).
 
+Note that `kotoba-tech/kotoba-whisper-v1.0` is an alias of `japanese-asr/distil-whisper-large-v3-ja-reazonspeech-large`, and
+`kotoba-tech/kotoba-whisper-v2.0` is an alias of `japanese-asr/distil-whisper-large-v3-ja-reazonspeech-all`.
 
-| WER                                                                                                                                               |   common_voice_8_0 |   jsut_basic5000 |   reazonspeech_test |
-|:--------------------------------------------------------------------------------------------------------------------------------------------------|-------------------:|-----------------:|--------------------:|
-| [japanese-asr/distil-whisper-large-v3-ja-reazonspeech-large](https://huggingface.co/japanese-asr/distil-whisper-large-v3-ja-reazonspeech-large)   |              59.27 |            64.36 |               56.62 |
-| [japanese-asr/distil-whisper-large-v3-ja-reazonspeech-medium](https://huggingface.co/japanese-asr/distil-whisper-large-v3-ja-reazonspeech-medium) |              64.38 |            72.02 |               62.99 |
-| [japanese-asr/distil-whisper-large-v3-ja-reazonspeech-small](https://huggingface.co/japanese-asr/distil-whisper-large-v3-ja-reazonspeech-small)   |              85.1  |            94.18 |               82.18 |
-| [japanese-asr/distil-whisper-large-v3-ja-reazonspeech-tiny](https://huggingface.co/japanese-asr/distil-whisper-large-v3-ja-reazonspeech-tiny)     |              99.96 |           100    |               99.05 |
-| [openai/whisper-large-v3](https://huggingface.co/openai/whisper-large-v3)                                                                         |              55.41 |            59.34 |               60.23 |
-| [openai/whisper-medium](https://huggingface.co/openai/whisper-medium)                                                                             |              63.64 |            69.52 |               76.04 |
-| [openai/whisper-small](https://huggingface.co/openai/whisper-small)                                                                               |              74.21 |            82.02 |               82.99 |
-| [openai/whisper-tiny](https://huggingface.co/openai/whisper-tiny)                                                                                 |              93.78 |            97.72 |               94.85 |
+- CER
 
-| CER                                                                                                                                               |   common_voice_8_0 |   jsut_basic5000 |   reazonspeech_test |
-|:--------------------------------------------------------------------------------------------------------------------------------------------------|-------------------:|-----------------:|--------------------:|
-| [japanese-asr/distil-whisper-large-v3-ja-reazonspeech-large](https://huggingface.co/japanese-asr/distil-whisper-large-v3-ja-reazonspeech-large)   |               9.44 |             8.48 |               12.6  |
-| [japanese-asr/distil-whisper-large-v3-ja-reazonspeech-medium](https://huggingface.co/japanese-asr/distil-whisper-large-v3-ja-reazonspeech-medium) |              10.89 |            11.25 |               16.37 |
-| [japanese-asr/distil-whisper-large-v3-ja-reazonspeech-small](https://huggingface.co/japanese-asr/distil-whisper-large-v3-ja-reazonspeech-small)   |              30.48 |            38.96 |               42.29 |
-| [japanese-asr/distil-whisper-large-v3-ja-reazonspeech-tiny](https://huggingface.co/japanese-asr/distil-whisper-large-v3-ja-reazonspeech-tiny)     |              94.69 |            95.32 |               95.82 |
-| [openai/whisper-large-v3](https://huggingface.co/openai/whisper-large-v3)                                                                         |               8.52 |             7.18 |               15.18 |
-| [openai/whisper-medium](https://huggingface.co/openai/whisper-medium)                                                                             |              11.34 |             9.87 |               29.56 |
-| [openai/whisper-small](https://huggingface.co/openai/whisper-small)                                                                               |              15.26 |            14.22 |               34.29 |
-| [openai/whisper-tiny](https://huggingface.co/openai/whisper-tiny)                                                                                 |              46.86 |            35.69 |               96.69 |
+| model                                                       |   japanese-asr/ja_asr.common_voice_8_0 |   japanese-asr/ja_asr.jsut_basic5000 |   japanese-asr/ja_asr.reazonspeech_test |
+|:------------------------------------------------------------|---------------------------------------:|-------------------------------------:|----------------------------------------:|
+| japanese-asr/distil-whisper-large-v3-ja-reazonspeech-all    |                                    9.2 |                                  8.4 |                                    11.6 |
+| japanese-asr/distil-whisper-large-v3-ja-reazonspeech-large  |                                    9.4 |                                  8.5 |                                    12.2 |
+| japanese-asr/distil-whisper-large-v3-ja-reazonspeech-medium |                                   10.9 |                                 11.3 |                                    14.7 |
+| japanese-asr/distil-whisper-large-v3-ja-reazonspeech-small  |                                   30.3 |                                 39.1 |                                    40.8 |
+| japanese-asr/distil-whisper-large-v3-ja-reazonspeech-tiny   |                                   94.3 |                                 96.2 |                                    96.7 |
+| kotoba-tech/kotoba-whisper-v1.0                             |                                    9.4 |                                  8.5 |                                    12.2 |
+| kotoba-tech/kotoba-whisper-v1.1                             |                                    9.5 |                                  8.5 |                                    12.2 |
+| kotoba-tech/kotoba-whisper-v1.1 (punctuator + stable-ts)    |                                    9.5 |                                  8.5 |                                    12.2 |
+| kotoba-tech/kotoba-whisper-v1.1 (punctuator)                |                                    9.5 |                                  8.5 |                                    12.2 |
+| kotoba-tech/kotoba-whisper-v1.1 (stable-ts)                 |                                    9.5 |                                  8.5 |                                    12.2 |
+| kotoba-tech/kotoba-whisper-v2.0                             |                                    9.2 |                                  8.4 |                                    11.6 |
+| kotoba-tech/kotoba-whisper-v2.1                             |                                    9.3 |                                  8.4 |                                    11.3 |
+| kotoba-tech/kotoba-whisper-v2.1 (punctuator + stable-ts)    |                                    9.3 |                                  8.4 |                                    11.3 |
+| kotoba-tech/kotoba-whisper-v2.1 (punctuator)                |                                    9.3 |                                  8.4 |                                    11.3 |
+| kotoba-tech/kotoba-whisper-v2.1 (stable-ts)                 |                                    9.3 |                                  8.4 |                                    11.3 |
+| openai/whisper-base                                         |                                   28.2 |                                 25   |                                    69.4 |
+| openai/whisper-large                                        |                                   10   |                                  8.9 |                                    34.4 |
+| openai/whisper-large-v2                                     |                                    9.7 |                                  8.2 |                                    28.5 |
+| openai/whisper-large-v3                                     |                                    8.5 |                                  7.1 |                                    15.1 |
+| openai/whisper-medium                                       |                                   11.4 |                                 10   |                                    33.3 |
+| openai/whisper-small                                        |                                   15.7 |                                 14.2 |                                    40.8 |
+| openai/whisper-tiny                                         |                                   58   |                                 37.6 |                                   142.2 |
+| reazon-research/reazonspeech-nemo-v2                        |                                    9.1 |                                  7.4 |                                    11.2 | 
+
+- WER
+
+| model                                                       |   japanese-asr/ja_asr.common_voice_8_0 |   japanese-asr/ja_asr.jsut_basic5000 |   japanese-asr/ja_asr.reazonspeech_test |
+|:------------------------------------------------------------|---------------------------------------:|-------------------------------------:|----------------------------------------:|
+| japanese-asr/distil-whisper-large-v3-ja-reazonspeech-all    |                                   58.9 |                                 63.8 |                                    55.6 |
+| japanese-asr/distil-whisper-large-v3-ja-reazonspeech-large  |                                   59.2 |                                 64.3 |                                    56.4 |
+| japanese-asr/distil-whisper-large-v3-ja-reazonspeech-medium |                                   64.6 |                                 72.1 |                                    62.9 |
+| japanese-asr/distil-whisper-large-v3-ja-reazonspeech-small  |                                   85   |                                 94.2 |                                    82.1 |
+| japanese-asr/distil-whisper-large-v3-ja-reazonspeech-tiny   |                                  100   |                                100   |                                    99   |
+| kotoba-tech/kotoba-whisper-v1.0                             |                                   59.3 |                                 64.4 |                                    56.5 |
+| kotoba-tech/kotoba-whisper-v1.1                             |                                   59.6 |                                 64.3 |                                    55.6 |
+| kotoba-tech/kotoba-whisper-v1.1 (punctuator + stable-ts)    |                                   59.6 |                                 64.3 |                                    55.6 |
+| kotoba-tech/kotoba-whisper-v1.1 (punctuator)                |                                   59.6 |                                 64.3 |                                    55.6 |
+| kotoba-tech/kotoba-whisper-v1.1 (stable-ts)                 |                                   59.6 |                                 64.3 |                                    55.6 |
+| kotoba-tech/kotoba-whisper-v2.0                             |                                   58.8 |                                 63.7 |                                    55.6 |
+| kotoba-tech/kotoba-whisper-v2.1                             |                                   59.3 |                                 63.7 |                                    54.7 |
+| kotoba-tech/kotoba-whisper-v2.1 (punctuator + stable-ts)    |                                   59.3 |                                 63.7 |                                    54.7 |
+| kotoba-tech/kotoba-whisper-v2.1 (punctuator)                |                                   59.3 |                                 63.7 |                                    54.7 |
+| kotoba-tech/kotoba-whisper-v2.1 (stable-ts)                 |                                   59.3 |                                 63.7 |                                    54.7 |
+| openai/whisper-base                                         |                                   87.1 |                                 92.9 |                                    91.7 |
+| openai/whisper-large                                        |                                   60.9 |                                 66.5 |                                    75   |
+| openai/whisper-large-v2                                     |                                   59.5 |                                 63.2 |                                    74.2 |
+| openai/whisper-large-v3                                     |                                   55.3 |                                 59.2 |                                    60.3 |
+| openai/whisper-medium                                       |                                   63.4 |                                 69.6 |                                    76   |
+| openai/whisper-small                                        |                                   74.2 |                                 82   |                                    83.1 |
+| openai/whisper-tiny                                         |                                   93.8 |                                 97.6 |                                    94.9 |
+| reazon-research/reazonspeech-nemo-v2                        |                                   57.5 |                                 60.6 |                                    47.5 | 
+
+
+- Raw CER
+
+| model                                                       |   japanese-asr/ja_asr.common_voice_8_0 |   japanese-asr/ja_asr.jsut_basic5000 |   japanese-asr/ja_asr.reazonspeech_test |
+|:------------------------------------------------------------|---------------------------------------:|-------------------------------------:|----------------------------------------:|
+| japanese-asr/distil-whisper-large-v3-ja-reazonspeech-all    |                                   15.4 |                                 15.4 |                                    17.4 |
+| japanese-asr/distil-whisper-large-v3-ja-reazonspeech-large  |                                   15.5 |                                 15.2 |                                    17.8 |
+| japanese-asr/distil-whisper-large-v3-ja-reazonspeech-medium |                                   17   |                                 18.4 |                                    20.2 |
+| japanese-asr/distil-whisper-large-v3-ja-reazonspeech-small  |                                   34.4 |                                 43.2 |                                    44.2 |
+| japanese-asr/distil-whisper-large-v3-ja-reazonspeech-tiny   |                                   93.7 |                                 95.1 |                                    95.6 |
+| kotoba-tech/kotoba-whisper-v1.0                             |                                   15.6 |                                 15.2 |                                    17.8 |
+| kotoba-tech/kotoba-whisper-v1.1                             |                                   15.7 |                                 15   |                                    17.7 |
+| kotoba-tech/kotoba-whisper-v1.1 (punctuator + stable-ts)    |                                   13.7 |                                 11.2 |                                    17.4 |
+| kotoba-tech/kotoba-whisper-v1.1 (punctuator)                |                                   13.9 |                                 11.4 |                                    18   |
+| kotoba-tech/kotoba-whisper-v1.1 (stable-ts)                 |                                   15.7 |                                 15   |                                    17.7 |
+| kotoba-tech/kotoba-whisper-v2.0                             |                                   15.4 |                                 15.4 |                                    17.4 |
+| kotoba-tech/kotoba-whisper-v2.1                             |                                   15.5 |                                 15.4 |                                    17   |
+| kotoba-tech/kotoba-whisper-v2.1 (punctuator + stable-ts)    |                                   13.7 |                                 11.4 |                                    17   |
+| kotoba-tech/kotoba-whisper-v2.1 (punctuator)                |                                   13.8 |                                 11.6 |                                    17.3 |
+| kotoba-tech/kotoba-whisper-v2.1 (stable-ts)                 |                                   15.5 |                                 15.4 |                                    17   |
+| openai/whisper-base                                         |                                   31.6 |                                 26.4 |                                    74.5 |
+| openai/whisper-large                                        |                                   14   |                                 11.2 |                                    40.4 |
+| openai/whisper-large-v2                                     |                                   13.5 |                                 10.6 |                                    34.4 |
+| openai/whisper-large-v3                                     |                                   12.9 |                                 13.4 |                                    20.6 |
+| openai/whisper-medium                                       |                                   15.4 |                                 13   |                                    39   |
+| openai/whisper-small                                        |                                   19.8 |                                 18.8 |                                    47   |
+| openai/whisper-tiny                                         |                                   61.3 |                                 39.4 |                                   156.5 |
+| reazon-research/reazonspeech-nemo-v2                        |                                   12.6 |                                 10.6 |                                    15.4 | 
+
+- Raw WER
+
+| model                                                       |   japanese-asr/ja_asr.common_voice_8_0 |   japanese-asr/ja_asr.jsut_basic5000 |   japanese-asr/ja_asr.reazonspeech_test |
+|:------------------------------------------------------------|---------------------------------------:|-------------------------------------:|----------------------------------------:|
+| japanese-asr/distil-whisper-large-v3-ja-reazonspeech-all    |                                   99.6 |                                 99.4 |                                    93.5 |
+| japanese-asr/distil-whisper-large-v3-ja-reazonspeech-large  |                                   99.8 |                                 99.4 |                                    93.1 |
+| japanese-asr/distil-whisper-large-v3-ja-reazonspeech-medium |                                   99.9 |                                 99.9 |                                    94.2 |
+| japanese-asr/distil-whisper-large-v3-ja-reazonspeech-small  |                                  100   |                                100   |                                    97.1 |
+| japanese-asr/distil-whisper-large-v3-ja-reazonspeech-tiny   |                                  100   |                                100   |                                   100   |
+| kotoba-tech/kotoba-whisper-v1.0                             |                                   99.7 |                                 99.4 |                                    93.2 |
+| kotoba-tech/kotoba-whisper-v1.1                             |                                   99.6 |                                 99.4 |                                    91.8 |
+| kotoba-tech/kotoba-whisper-v1.1 (punctuator + stable-ts)    |                                   87.2 |                                 86.2 |                                    81.1 |
+| kotoba-tech/kotoba-whisper-v1.1 (punctuator)                |                                   87.3 |                                 86.4 |                                    81.3 |
+| kotoba-tech/kotoba-whisper-v1.1 (stable-ts)                 |                                   99.6 |                                 99.4 |                                    91.8 |
+| kotoba-tech/kotoba-whisper-v2.0                             |                                   99.6 |                                 99.4 |                                    93.4 |
+| kotoba-tech/kotoba-whisper-v2.1                             |                                   99.8 |                                 99.5 |                                    91.4 |
+| kotoba-tech/kotoba-whisper-v2.1 (punctuator + stable-ts)    |                                   87.2 |                                 85.9 |                                    81.1 |
+| kotoba-tech/kotoba-whisper-v2.1 (punctuator)                |                                   87.2 |                                 86.3 |                                    81.2 |
+| kotoba-tech/kotoba-whisper-v2.1 (stable-ts)                 |                                   99.8 |                                 99.5 |                                    91.4 |
+| openai/whisper-base                                         |                                   97.5 |                                 97.8 |                                    99   |
+| openai/whisper-large                                        |                                   91.4 |                                 88.3 |                                    98.5 |
+| openai/whisper-large-v2                                     |                                   89.2 |                                 87.3 |                                    97.5 |
+| openai/whisper-large-v3                                     |                                   91.1 |                                 98.5 |                                    92.6 |
+| openai/whisper-medium                                       |                                   91.7 |                                 93.3 |                                    98   |
+| openai/whisper-small                                        |                                   95.3 |                                 98.5 |                                    98.9 |
+| openai/whisper-tiny                                         |                                   99.2 |                                 99.6 |                                    99.6 |
+| reazon-research/reazonspeech-nemo-v2                        |                                   85.7 |                                 91.5 |                                    73.4 | 

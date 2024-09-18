@@ -37,17 +37,6 @@ output_metric_file = f"{arg.output_dir}/metric.jsonl"
 
 # display mode
 if arg.pretty_table:
-    with open(output_metric_file) as f:
-        metrics = [json.loads(s) for s in f.read().split("\n") if len(s) > 0]
-    df_metric = pd.DataFrame(metrics).sort_values(["dataset", "model", "chunk_length_s", "punctuator", "stable_ts"])
-    df_metric = df_metric.drop_duplicates(["dataset", "model", "chunk_length_s", "punctuator", "stable_ts"])
-    metrics = [i.to_dict() for _, i in df_metric.iterrows()]
-    with open(output_metric_file, "w") as f:
-        f.write("\n".join([json.dumps(i) for i in metrics]))
-
-    df_metric = df_metric.round(1)
-    df_metric["cer/wer (norm)"] = [f"{c}/{w}" for c, w in zip(df_metric["cer_norm"], df_metric["wer_norm"])]
-    df_metric["cer/wer (raw)"] = [f"{c}/{w}" for c, w in zip(df_metric["cer_raw"], df_metric["wer_raw"])]
 
     def pretty(m, p, s):
         if p and s:
@@ -58,17 +47,27 @@ if arg.pretty_table:
             return f"{m} (punctuator)"
         return m
 
+
+    with open(output_metric_file) as f:
+        metrics = [json.loads(s) for s in f.read().split("\n") if len(s) > 0]
+    df_metric = pd.DataFrame(metrics).sort_values(["dataset", "model", "chunk_length_s", "punctuator", "stable_ts"])
+    df_metric = df_metric.drop_duplicates(["dataset", "model", "chunk_length_s", "punctuator", "stable_ts"])
+    metrics = [i.to_dict() for _, i in df_metric.iterrows()]
+    with open(output_metric_file, "w") as f:
+        f.write("\n".join([json.dumps(i) for i in metrics]))
+
+    df_metric = df_metric.round(1)
     df_metric["model"] = [pretty(m, p, s) for m, p, s in zip(df_metric["model"], df_metric["punctuator"], df_metric["stable_ts"])]
-    # df_metric = df_metric[["model", "dataset", "punctuator", "stable_ts", "cer/wer (raw)", "cer/wer (norm)"]]
-    df_metric = df_metric[["model", "dataset", "punctuator", "stable_ts", "cer_norm", "cer_raw"]]
-    g = df_metric.groupby(["model", "dataset", "punctuator", "stable_ts"]).first()
-    print(df_metric)
+    df_metric["cer/wer (norm)"] = [f"{c}/{w}" for c, w in zip(df_metric["cer_norm"], df_metric["wer_norm"])]
+    df_metric["cer/wer (raw)"] = [f"{c}/{w}" for c, w in zip(df_metric["cer_raw"], df_metric["wer_raw"])]
     print("\nNORM")
-    # print(df_metric.pivot(values="cer/wer (norm)", columns="dataset", index="model").to_markdown())
-    print(df_metric.pivot_table(values="cer_norm", columns="dataset", index="model", aggfunc='first').to_markdown())
+    print(df_metric.pivot(values="cer/wer (norm)", columns="dataset", index="model").to_markdown(), "\n")
+    print(df_metric.pivot_table(values="cer_norm", columns="dataset", index="model", aggfunc='first').to_markdown(), "\n")
+    print(df_metric.pivot_table(values="wer_norm", columns="dataset", index="model", aggfunc='first').to_markdown(), "\n")
     print("\nRAW")
-    # print(df_metric.pivot(values="cer/wer (raw)", columns="dataset", index="model").to_markdown())
-    print(df_metric.pivot_table(values="cer_raw", columns="dataset", index="model", aggfunc='first').to_markdown())
+    print(df_metric.pivot(values="cer/wer (raw)", columns="dataset", index="model").to_markdown(), "\n")
+    print(df_metric.pivot_table(values="cer_raw", columns="dataset", index="model", aggfunc='first').to_markdown(), "\n")
+    print(df_metric.pivot_table(values="wer_raw", columns="dataset", index="model", aggfunc='first').to_markdown(), "\n")
     exit()
 
 # model config
