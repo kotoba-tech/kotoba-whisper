@@ -1,3 +1,15 @@
 .idea
 test_audio
 whisper.cpp
+.idea
+*.egg-info
+build
+dist
+*.ipynb_checkpoints
+.DS_Store
+.python-version
+*.pyc
+__pycache__
+*.nfs000*
+.eggs
+
