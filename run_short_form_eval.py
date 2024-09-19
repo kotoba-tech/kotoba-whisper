@@ -23,6 +23,8 @@ from evaluate import load
 parser = argparse.ArgumentParser(description='Compute CER/WER for Japanese ASR model.')
 parser.add_argument('-m', '--model', default="kotoba-tech/kotoba-whisper-v1.1", type=str)
 parser.add_argument('-d', '--dataset', default="japanese-asr/ja_asr.jsut_basic5000", type=str)
+parser.add_argument('--dataset-split', default="test", type=str)
+parser.add_argument('--dataset-config', default=None, type=str)
 parser.add_argument('-a', '--attn', default="sdpa", type=str)
 parser.add_argument('--column-audio', default="audio", type=str)
 parser.add_argument('--column-text', default="transcription", type=str)
@@ -117,7 +119,10 @@ else:
         pipe = pipeline("automatic-speech-recognition", **pipeline_config)
 
     # load the dataset and get prediction
-    dataset = load_dataset(arg.dataset, split="test")
+    if arg.dataset_config:
+        dataset = load_dataset(arg.dataset, arg.dataset_config, split=arg.dataset_split)
+    else:
+        dataset = load_dataset(arg.dataset, split=arg.dataset_split)
     output = pipe(dataset[arg.column_audio], generate_kwargs=generate_kwargs)
     normalizer = BasicTextNormalizer()
     prediction_norm = [normalizer(i['text']).replace(" ", "") for i in output]
