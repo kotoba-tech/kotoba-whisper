@@ -2,8 +2,6 @@
 import argparse
 import re
 import os
-import time
-from functools import partial
 import datasets
 import evaluate
 import numpy as np

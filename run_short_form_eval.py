@@ -16,7 +16,8 @@ from pprint import pprint
 import torch
 import pandas as pd
 from transformers import pipeline
-from transformers.models.whisper.english_normalizer import BasicTextNormalizer
+from transformers.models.whisper.english_normalizer import BasicTextNormalizer, EnglishTextNormalizer
+from transformers import WhisperTokenizer
 from datasets import load_dataset
 from evaluate import load
 
@@ -26,6 +27,8 @@ parser.add_argument('-d', '--dataset', default="japanese-asr/ja_asr.jsut_basic50
 parser.add_argument('--dataset-split', default="test", type=str)
 parser.add_argument('--dataset-config', default=None, type=str)
 parser.add_argument('-a', '--attn', default="sdpa", type=str)
+parser.add_argument('-l', '--language', required=True, type=str)
+parser.add_argument('-t', '--task', default="transcribe", type=str)
 parser.add_argument('--column-audio', default="audio", type=str)
 parser.add_argument('--column-text', default="transcription", type=str)
 parser.add_argument('-b', '--batch', default=16, type=int)
@@ -78,7 +81,7 @@ if arg.pretty_table:
 torch_dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 model_kwargs = {"attn_implementation": arg.attn} if torch.cuda.is_available() and arg.attn else {}
-generate_kwargs = {"language": "japanese", "task": "transcribe"}
+generate_kwargs = {"language": arg.language, "task": arg.task}
 pipeline_config = dict(
     model=arg.model,
     torch_dtype=torch_dtype,
@@ -106,6 +109,8 @@ else:
         pipe = pipeline(trust_remote_code=True, punctuator=arg.punctuator, stable_ts=arg.stable_ts, **pipeline_config)
         stable_ts, punctuator = arg.stable_ts, arg.punctuator
     elif arg.model in ["reazon-research/reazonspeech-nemo-v2"]:
+        assert arg.task == "transcribe" and arg.language == "ja"
+
         from reazonspeech.nemo.asr import load_model, transcribe, interface
         model = load_model()
 
@@ -120,11 +125,17 @@ else:
 
     # load the dataset and get prediction
     if arg.dataset_config:
-        dataset = load_dataset(arg.dataset, arg.dataset_config, split=arg.dataset_split)
+        dataset = load_dataset(arg.dataset, arg.dataset_config, split=arg.dataset_split, trust_remote_code=True)
     else:
-        dataset = load_dataset(arg.dataset, split=arg.dataset_split)
+        dataset = load_dataset(arg.dataset, split=arg.dataset_split, trust_remote_code=True)
     output = pipe(dataset[arg.column_audio], generate_kwargs=generate_kwargs)
-    normalizer = BasicTextNormalizer()
+
+    if arg.language == "en":
+        tokenizer = WhisperTokenizer.from_pretrained(arg.model)
+        normalizer = EnglishTextNormalizer(tokenizer.english_spelling_normalizer)
+    else:
+        normalizer = BasicTextNormalizer()
+
     prediction_norm = [normalizer(i['text']).replace(" ", "") for i in output]
     references_norm = [normalizer(i).replace(" ", "").replace("。.", "。") for i in dataset[arg.column_text]]
     prediction_raw = [i['text'].replace(" ", "") for i in output]

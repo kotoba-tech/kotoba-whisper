@@ -255,10 +255,7 @@ do
   python run_short_form_eval.py -m "asahi417/distil-whisper-bilingual" -d "${DATA}" -b 128
 done
 
-for DATA in "japanese-asr/ja_asr.jsut_basic5000" "japanese-asr/ja_asr.reazonspeech_test" "japanese-asr/ja_asr.common_voice_8_0"
-do
-  python run_short_form_eval.py -m "asahi417/distil-whisper-bilingual" -d "${DATA}" -b 128
-done
+python run_short_form_eval.py -m "asahi417/distil-whisper-bilingual" -d "esb/datasets" --dataset-config "librispeech" --dataset-split "test.clean" --column-text "text" -b 128
 
 
 ####################
