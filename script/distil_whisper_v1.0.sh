@@ -111,6 +111,7 @@ do
   python run_short_form_eval.py -l "ja" -t "transcribe" -m "${HF_ORG}/distil-whisper-large-v3-ja-reazonspeech-tiny" -d "${DATA}" -b 256
   python run_short_form_eval.py -l "ja" -t "transcribe" -m "${HF_ORG}/distil-whisper-large-v3-ja-reazonspeech-small" -d "${DATA}" -b 256
   python run_short_form_eval.py -l "ja" -t "transcribe" -m "${HF_ORG}/distil-whisper-large-v3-ja-reazonspeech-medium" -d "${DATA}" -b 256
+  python run_short_form_eval.py -l "ja" -t "transcribe" -m "${HF_ORG}/distil-whisper-large-v3-ja-reazonspeech-large" -d "${DATA}" -b 256
   python run_short_form_eval.py -l "ja" -t "transcribe" -m "${HF_ORG}/distil-whisper-large-v3-ja-reazonspeech-all" -d "${DATA}" -b 256
 done
 
@@ -118,21 +119,14 @@ done
 # (Optional) Evaluate Teacher Model #
 #####################################
 
-for DATA in "japanese-asr/ja_asr.jsut_basic5000" "japanese-asr/ja_asr.reazonspeech_test" "japanese-asr/ja_asr.common_voice_8_0"
+for MODEL in "openai/whisper-large" "openai/whisper-large-v2" "openai/whisper-large-v3" "openai/whisper-medium" "openai/whisper-small" "openai/whisper-base" "openai/whisper-tiny"
 do
-  for MODEL in "openai/whisper-large" "openai/whisper-large-v2" "openai/whisper-large-v3" "openai/whisper-medium" "openai/whisper-small" "openai/whisper-base" "openai/whisper-tiny"
-  do
-    python run_short_form_eval.py -m ${MODEL} -d "${DATA}" -b 256
+    for DATA in "japanese-asr/ja_asr.jsut_basic5000" "japanese-asr/ja_asr.reazonspeech_test" "japanese-asr/ja_asr.common_voice_8_0"
+    do
+    python run_short_form_eval.py -l "ja" -t "transcribe" -m ${MODEL} -d "${DATA}" -b 32
   done
 done
-for DATA in "japanese-asr/ja_asr.jsut_basic5000" "japanese-asr/ja_asr.reazonspeech_test" "japanese-asr/ja_asr.common_voice_8_0"
-do
-  python run_short_form_eval.py -l "ja" -t "transcribe" -m "${HF_ORG}/distil-whisper-large-v3-ja-reazonspeech-tiny" -d "${DATA}" -b 256
-  python run_short_form_eval.py -l "ja" -t "transcribe" -m "${HF_ORG}/distil-whisper-large-v3-ja-reazonspeech-small" -d "${DATA}" -b 256
-  python run_short_form_eval.py -l "ja" -t "transcribe" -m "${HF_ORG}/distil-whisper-large-v3-ja-reazonspeech-medium" -d "${DATA}" -b 256
-  python run_short_form_eval.py -l "ja" -t "transcribe" -m "${HF_ORG}/distil-whisper-large-v3-ja-reazonspeech-large" -d "${DATA}" -b 256
-  python run_short_form_eval.py -l "ja" -t "transcribe" -m "${HF_ORG}/distil-whisper-large-v3-ja-reazonspeech-all" -d "${DATA}" -b 256
-done
+
 ##################################
 # (Optional) Evaluate Nemo Model #
 ##################################
