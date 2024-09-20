@@ -92,7 +92,7 @@ pipeline_config = dict(
 )
 
 # instantiate pipeline
-metric = {"model": arg.model, "dataset": arg.dataset, "chunk_length_s": arg.chunk_length}
+metric = {"model": arg.model, "dataset": arg.dataset, "chunk_length_s": arg.chunk_length, "language": arg.language, "task": arg.task}
 stable_ts, punctuator = None, None
 prediction_path = f"{arg.output_dir}/model-{os.path.basename(arg.model)}.dataset-{os.path.basename(arg.dataset)}.stable-ts-{stable_ts}.punctuator-{punctuator}.chunk_length-{arg.chunk_length}.csv"
 if os.path.exists(prediction_path):
