@@ -94,13 +94,13 @@ pipeline_config = dict(
 # instantiate pipeline
 metric = {"model": arg.model, "dataset": arg.dataset, "chunk_length_s": arg.chunk_length, "language": arg.language, "task": arg.task}
 stable_ts, punctuator = None, None
-prediction_path = f"{arg.output_dir}/model-{os.path.basename(arg.model)}.dataset-{os.path.basename(arg.dataset)}.stable-ts-{stable_ts}.punctuator-{punctuator}.chunk_length-{arg.chunk_length}.csv"
+prediction_path = f"{arg.output_dir}/model-{os.path.basename(arg.model)}.dataset-{os.path.basename(arg.dataset)}.language-{arg.language}.task-{arg.task}.stable-ts-{stable_ts}.punctuator-{punctuator}.chunk_length-{arg.chunk_length}.csv"
 if os.path.exists(prediction_path):
     df = pd.read_csv(prediction_path)
     prediction_norm = df["prediction_norm"].values.tolist()
-    references_norm = df["reference_norm"].values.tolist()
+    reference_norm = df["reference_norm"].values.tolist()
     prediction_raw = df["prediction_raw"].values.tolist()
-    references_raw = df["reference_raw"].values.tolist()
+    reference_raw = df["reference_raw"].values.tolist()
     audio_id = df["id"].values.tolist()
     if arg.model in ["kotoba-tech/kotoba-whisper-v1.1", "kotoba-tech/kotoba-whisper-v2.1"]:
         stable_ts, punctuator = arg.stable_ts, arg.punctuator
@@ -129,27 +129,39 @@ else:
     else:
         dataset = load_dataset(arg.dataset, split=arg.dataset_split, trust_remote_code=True)
     output = pipe(dataset[arg.column_audio], generate_kwargs=generate_kwargs)
+    prediction_raw = [i["text"] for i in output]
+    reference_raw = dataset[arg.column_text]
+    audio_id = [i["path"] for i in dataset[arg.column_audio]]
 
     if arg.language == "en":
         tokenizer = WhisperTokenizer.from_pretrained(arg.model)
         normalizer = EnglishTextNormalizer(tokenizer.english_spelling_normalizer)
+        normalize = lambda x: normalizer(x)
+    elif arg.language == "ja":
+        normalizer = BasicTextNormalizer()
+        normalize = lambda x: normalizer(x).replace(" ", "").replace("。.", "。")
     else:
         normalizer = BasicTextNormalizer()
+        normalize = lambda x: normalizer(x)
 
-    prediction_norm = [normalizer(i['text']).replace(" ", "") for i in output]
-    references_norm = [normalizer(i).replace(" ", "").replace("。.", "。") for i in dataset[arg.column_text]]
-    prediction_raw = [i['text'].replace(" ", "") for i in output]
-    references_raw = [i.replace(" ", "").replace("。.", "。") for i in dataset[arg.column_text]]
-    audio_id = [i["path"] for i in dataset[arg.column_audio]]
+    prediction_norm = [normalize(i) for i in prediction_raw]
+    reference_norm = [normalize(i) for i in reference_raw]
+    # remove empty reference
+    flag = [len(i) != 0 for i in reference_norm]
+    reference_norm = list(list(zip(*filter(lambda x: x[1], zip(reference_norm, flag))))[0])
+    reference_raw = list(list(zip(*filter(lambda x: x[1], zip(reference_raw, flag))))[0])
+    prediction_norm = list(list(zip(*filter(lambda x: x[1], zip(prediction_norm, flag))))[0])
+    prediction_raw = list(list(zip(*filter(lambda x: x[1], zip(prediction_raw, flag))))[0])
+    audio_id = list(list(zip(*filter(lambda x: x[1], zip(audio_id, flag))))[0])
 
 # compute metrics
 metric.update({"punctuator": punctuator, "stable_ts": stable_ts})
 cer_metric = load("cer")
-cer_norm = 100 * cer_metric.compute(predictions=prediction_norm, references=references_norm)
-cer_raw = 100 * cer_metric.compute(predictions=prediction_raw, references=references_raw)
+cer_norm = 100 * cer_metric.compute(predictions=prediction_norm, references=reference_norm)
+cer_raw = 100 * cer_metric.compute(predictions=prediction_raw, references=reference_raw)
 wer_metric = load("wer")
-wer_norm = 100 * wer_metric.compute(predictions=prediction_norm, references=references_norm)
-wer_raw = 100 * wer_metric.compute(predictions=prediction_raw, references=references_raw)
+wer_norm = 100 * wer_metric.compute(predictions=prediction_norm, references=reference_norm)
+wer_raw = 100 * wer_metric.compute(predictions=prediction_raw, references=reference_raw)
 metric.update({"cer_raw": cer_raw, "wer_raw": wer_raw, "cer_norm": cer_norm, "wer_norm": wer_norm})
 
 # save the results
@@ -165,7 +177,7 @@ with open(output_metric_file, "w") as f:
 
 # save prediction
 df = pd.DataFrame(
-    [audio_id, references_norm, prediction_norm, references_raw, prediction_raw],
+    [audio_id, reference_norm, prediction_norm, reference_raw, prediction_raw],
     index=["id", "reference_norm", "prediction_norm", "reference_raw", "prediction_raw"]
 ).T
 df.to_csv(f"{arg.output_dir}/model-{os.path.basename(arg.model)}.dataset-{os.path.basename(arg.dataset)}.stable-ts-{stable_ts}.punctuator-{punctuator}.chunk_length-{arg.chunk_length}.csv", index=False)
