@@ -92,9 +92,20 @@ pipeline_config = dict(
 )
 
 # instantiate pipeline
-metric = {"model": arg.model, "dataset": arg.dataset, "chunk_length_s": arg.chunk_length, "language": arg.language, "task": arg.task}
+metric = {
+    "model": arg.model,
+    "dataset": arg.dataset,
+    "dataset_config": arg.dataset_config,
+    "dataset_split": arg.dataset_split,
+    "chunk_length_s": arg.chunk_length,
+    "language": arg.language,
+    "task": arg.task
+}
 stable_ts, punctuator = None, None
-prediction_path = f"{arg.output_dir}/model-{os.path.basename(arg.model)}.dataset-{os.path.basename(arg.dataset)}.language-{arg.language}.task-{arg.task}.stable-ts-{stable_ts}.punctuator-{punctuator}.chunk_length-{arg.chunk_length}.csv"
+prediction_path = (f"{arg.output_dir}/model-{os.path.basename(arg.model)}.dataset-{os.path.basename(arg.dataset)}."
+                   f"dataset_config-{arg.dataset_config}.dataset_split-{arg.dataset_split}."
+                   f"language-{arg.language}.task-{arg.task}.stable-ts-{stable_ts}."
+                   f"punctuator-{punctuator}.chunk_length-{arg.chunk_length}.csv")
 if os.path.exists(prediction_path):
     df = pd.read_csv(prediction_path)
     prediction_norm = df["prediction_norm"].values.tolist()
