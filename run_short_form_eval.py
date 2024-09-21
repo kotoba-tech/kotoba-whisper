@@ -27,7 +27,7 @@ parser.add_argument('-d', '--dataset', default="japanese-asr/ja_asr.jsut_basic50
 parser.add_argument('--dataset-split', default="test", type=str)
 parser.add_argument('--dataset-config', default=None, type=str)
 parser.add_argument('-a', '--attn', default="sdpa", type=str)
-parser.add_argument('-l', '--language', required=True, type=str)
+parser.add_argument('-l', '--language', default="ja", type=str)
 parser.add_argument('-t', '--task', default="transcribe", type=str)
 parser.add_argument('--column-audio', default="audio", type=str)
 parser.add_argument('--column-text', default="transcription", type=str)
@@ -40,40 +40,45 @@ parser.add_argument('--pretty-table', action="store_true")
 arg = parser.parse_args()
 
 os.makedirs(arg.output_dir, exist_ok=True)
-output_metric_file = f"{arg.output_dir}/metric.jsonl"
+output_metric_file = f"{arg.output_dir}/metric.{arg.language}.{arg.task}.jsonl"
 
 # display mode
 if arg.pretty_table:
 
     def pretty(m, p, s):
         if p and s:
-            return f"{m} (punctuator + stable-ts)"
+            return f"[{m}](https://huggingface.co/{m}) (punctuator + stable-ts)"
         if s:
-            return f"{m} (stable-ts)"
+            return f"[{m}](https://huggingface.co/{m}) (stable-ts)"
         if p:
-            return f"{m} (punctuator)"
-        return m
+            return f"[{m}](https://huggingface.co/{m}) (punctuator)"
+        return f"[{m}](https://huggingface.co/{m})"
 
 
     with open(output_metric_file) as f:
         metrics = [json.loads(s) for s in f.read().split("\n") if len(s) > 0]
     df_metric = pd.DataFrame(metrics).sort_values(["dataset", "model", "chunk_length_s", "punctuator", "stable_ts"])
-    df_metric = df_metric.drop_duplicates(["dataset", "model", "chunk_length_s", "punctuator", "stable_ts"])
+    df_metric = df_metric[df_metric.language == arg.language]
+    df_metric = df_metric[df_metric.task == arg.task]
+    df_metric = df_metric.drop_duplicates(["dataset", "dataset_config", "dataset_split", "model", "chunk_length_s", "punctuator", "stable_ts"])
     metrics = [i.to_dict() for _, i in df_metric.iterrows()]
     with open(output_metric_file, "w") as f:
         f.write("\n".join([json.dumps(i) for i in metrics]))
 
     df_metric = df_metric.round(1)
+    df_metric["dataset"] = [f"[{m}](https://huggingface.co/datasets/{m})" for m in df_metric["dataset"]]
     df_metric["model"] = [pretty(m, p, s) for m, p, s in zip(df_metric["model"], df_metric["punctuator"], df_metric["stable_ts"])]
-    df_metric["cer/wer (norm)"] = [f"{c}/{w}" for c, w in zip(df_metric["cer_norm"], df_metric["wer_norm"])]
-    df_metric["cer/wer (raw)"] = [f"{c}/{w}" for c, w in zip(df_metric["cer_raw"], df_metric["wer_raw"])]
-    print("\nNORM")
-    print(df_metric.pivot(values="cer/wer (norm)", columns="dataset", index="model").to_markdown(), "\n")
+    # df_metric["cer/wer (norm)"] = [f"{c}/{w}" for c, w in zip(df_metric["cer_norm"], df_metric["wer_norm"])]
+    # df_metric["cer/wer (raw)"] = [f"{c}/{w}" for c, w in zip(df_metric["cer_raw"], df_metric["wer_raw"])]
+    # print(df_metric.pivot(values="cer/wer (norm)", columns="dataset", index="model").to_markdown(), "\n")
+    print("\nNORM (CER)")
     print(df_metric.pivot_table(values="cer_norm", columns="dataset", index="model", aggfunc='first').to_markdown(), "\n")
+    print("\nNORM (WER)")
     print(df_metric.pivot_table(values="wer_norm", columns="dataset", index="model", aggfunc='first').to_markdown(), "\n")
-    print("\nRAW")
-    print(df_metric.pivot(values="cer/wer (raw)", columns="dataset", index="model").to_markdown(), "\n")
+    print("\nRAW (CER)")
+    # print(df_metric.pivot(values="cer/wer (raw)", columns="dataset", index="model").to_markdown(), "\n")
     print(df_metric.pivot_table(values="cer_raw", columns="dataset", index="model", aggfunc='first').to_markdown(), "\n")
+    print("\nRAW (WER)")
     print(df_metric.pivot_table(values="wer_raw", columns="dataset", index="model", aggfunc='first').to_markdown(), "\n")
     exit()
 
@@ -180,7 +185,6 @@ metrics = []
 if os.path.exists(output_metric_file):
     with open(output_metric_file) as f:
         metrics += [json.loads(s) for s in f.read().split("\n") if len(s) > 0]
-output_prediction_file = f"{arg.output_dir}/prediction.csv"
 metrics.append(metric)
 pprint(metrics)
 with open(output_metric_file, "w") as f:
@@ -191,4 +195,4 @@ df = pd.DataFrame(
     [audio_id, reference_norm, prediction_norm, reference_raw, prediction_raw],
     index=["id", "reference_norm", "prediction_norm", "reference_raw", "prediction_raw"]
 ).T
-df.to_csv(f"{arg.output_dir}/model-{os.path.basename(arg.model)}.dataset-{os.path.basename(arg.dataset)}.stable-ts-{stable_ts}.punctuator-{punctuator}.chunk_length-{arg.chunk_length}.csv", index=False)
+df.to_csv(prediction_path, index=False)
