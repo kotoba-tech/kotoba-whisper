@@ -13,14 +13,15 @@ class CascadedS2TTranslationPipeline(AutomaticSpeechRecognitionPipeline):
                  model_translation: "PreTrainedModel" = "facebook/nllb-200-1.3B",
                  chunk_length_s: int = 0,
                  **kwargs):
-        kwargs.pop("task")
         self.type = "seq2seq_whisper"
         self.tgt_lang = tgt_lang
         self.src_lang = src_lang
         tokenizer = AutoTokenizer.from_pretrained("facebook/nllb-200-distilled-600M")
-        self.translation = pipeline("translation", model=model_translation, tokenizer=tokenizer, **kwargs)
         super().__init__(model=model, task="automatic-speech-recognition", chunk_length_s=chunk_length_s, **kwargs)
-        super()._sanitize_parameters()
+        kwargs.pop("task")
+        kwargs.pop("tokenizer")
+        self.translation = pipeline("translation", model=model_translation, tokenizer=tokenizer, **kwargs)
+
 
     def _forward(self, model_inputs, **generate_kwargs):
         attention_mask = model_inputs.pop("attention_mask", None)
