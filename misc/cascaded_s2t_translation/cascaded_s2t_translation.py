@@ -11,7 +11,7 @@ from transformers.modeling_utils import PreTrainedModel
 from transformers import pipeline
 
 
-class CascadeS2TTranslationPipeline(AutomaticSpeechRecognitionPipeline):
+class CascadedS2TTranslationPipeline(AutomaticSpeechRecognitionPipeline):
 
     def __init__(self,
                  model: "PreTrainedModel",
