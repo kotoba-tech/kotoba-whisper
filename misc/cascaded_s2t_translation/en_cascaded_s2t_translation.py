@@ -44,6 +44,7 @@ class EnCascadedS2TTranslationPipeline(AutomaticSpeechRecognitionPipeline):
 
     def postprocess(self, model_outputs, decoder_kwargs: Optional[Dict] = None, **kwargs):
         outputs = super().postprocess(model_outputs=model_outputs, decoder_kwargs=decoder_kwargs)
+        print(outputs)
         chunks = outputs.pop("chunks")
         outputs["text_asr"] = "".join([c["text"] for c in chunks])
         outputs["text"] = self.translation(outputs["text_asr"], src_lang="eng_Latn", tgt_lang=self.tgt_lang)
