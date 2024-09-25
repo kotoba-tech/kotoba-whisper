@@ -17,9 +17,9 @@ class CascadedS2TTranslationPipeline(AutomaticSpeechRecognitionPipeline):
         self.tgt_lang = tgt_lang
         self.src_lang = src_lang
         tokenizer = AutoTokenizer.from_pretrained("facebook/nllb-200-distilled-600M")
-        super().__init__(model=model, task="automatic-speech-recognition", chunk_length_s=chunk_length_s, **kwargs)
         kwargs.pop("task")
         kwargs.pop("tokenizer")
+        super().__init__(model=model, task="automatic-speech-recognition", chunk_length_s=chunk_length_s, **kwargs)
         self.translation = pipeline("translation", model=model_translation, tokenizer=tokenizer, **kwargs)
 
 
