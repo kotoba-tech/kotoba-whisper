@@ -35,7 +35,7 @@ pipe = pipeline(
     "ja-cascaded-s2t-translation",
     model="kotoba-tech/kotoba-whisper-v2.0",
     model_translation="facebook/nllb-200-distilled-600M",
-    tgt_lang="jpn_Jpan",
+    tgt_lang="eng_Latn",
     chunk_length_s=15,
     device_map="auto"
 )
