@@ -1,4 +1,4 @@
-from cascaded_s2t_translation import CascadedS2TTranslationPipeline
+from ja_cascaded_s2t_translation import CascadedS2TTranslationPipeline
 from transformers.pipelines import PIPELINE_REGISTRY, pipeline
 from transformers import WhisperForConditionalGeneration, TFWhisperForConditionalGeneration
 
