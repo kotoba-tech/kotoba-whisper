@@ -44,6 +44,7 @@ class JaCascadedS2TTranslationPipeline(AutomaticSpeechRecognitionPipeline):
 
     def postprocess(self, model_outputs, decoder_kwargs: Optional[Dict] = None, **kwargs):
         outputs = super().postprocess(model_outputs=model_outputs, decoder_kwargs=decoder_kwargs)
-        outputs["text_asr"] = "".join([c["text"] for c in outputs.pop("chunks")])
+        chunks = outputs.pop("chunks")
+        outputs["text_asr"] = "".join([c["text"] for c in chunks])
         outputs["text"] = self.translation(outputs["text_asr"], src_lang="jpn_Jpan", tgt_lang=self.tgt_lang)
         return outputs
