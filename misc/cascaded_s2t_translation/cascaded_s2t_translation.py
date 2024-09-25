@@ -22,7 +22,6 @@ class CascadedS2TTranslationPipeline(AutomaticSpeechRecognitionPipeline):
         kwargs.pop("tokenizer")
         self.translation = pipeline("translation", model=model_translation, tokenizer=tokenizer, **kwargs)
 
-
     def _forward(self, model_inputs, **generate_kwargs):
         attention_mask = model_inputs.pop("attention_mask", None)
         stride = model_inputs.pop("stride", None)
