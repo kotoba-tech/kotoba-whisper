@@ -22,8 +22,10 @@ pipe = pipeline(
     src_lang="eng_Latn",
     tgt_lang="jpn_Jpan",
     chunk_length_s=15,
+    device_map="auto"
 )
-output = pipe("./sample_en.mp3", src_lang="eng_Latn", tgt_lang="jpn_Jpan")
+output = pipe("./sample_en.mp3")
+# output = pipe("./sample_en.mp3", src_lang="eng_Latn", tgt_lang="jpn_Jpan")
 print(output)
 
 # pipe.push_to_hub(model_alias)
