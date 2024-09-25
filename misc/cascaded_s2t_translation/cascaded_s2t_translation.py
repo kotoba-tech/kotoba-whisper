@@ -7,7 +7,7 @@ from transformers import pipeline, AutoTokenizer
 class CascadedS2TTranslationPipeline(AutomaticSpeechRecognitionPipeline):
 
     def __init__(self,
-                 model: "PreTrainedModel",
+                 model_asr: "PreTrainedModel",
                  tgt_lang: str,
                  src_lang: str = None,
                  model_translation: "PreTrainedModel" = "facebook/nllb-200-1.3B",
@@ -18,7 +18,7 @@ class CascadedS2TTranslationPipeline(AutomaticSpeechRecognitionPipeline):
         self.src_lang = src_lang
         tokenizer = AutoTokenizer.from_pretrained("facebook/nllb-200-distilled-600M")
         kwargs.pop("task")
-        super().__init__(model=model, task="automatic-speech-recognition", chunk_length_s=chunk_length_s, **kwargs)
+        super().__init__(model=model_asr, task="automatic-speech-recognition", chunk_length_s=chunk_length_s, **kwargs)
         kwargs.pop("tokenizer")
         self.translation = pipeline("translation", model=model_translation, tokenizer=tokenizer, **kwargs)
 

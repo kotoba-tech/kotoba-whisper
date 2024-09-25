@@ -8,7 +8,6 @@ from transformers.pipelines import PIPELINE_REGISTRY, pipeline
 from transformers import WhisperForConditionalGeneration, TFWhisperForConditionalGeneration
 
 
-model_alias = "kotoba-tech/kotoba-whisper-v1.1"
 PIPELINE_REGISTRY.register_pipeline(
     "cascaded-s2t-translation",
     pipeline_class=CascadedS2TTranslationPipeline,
@@ -17,7 +16,7 @@ PIPELINE_REGISTRY.register_pipeline(
 )
 pipe = pipeline(
     "cascaded-s2t-translation",
-    model="distil-whisper/distil-large-v3",
+    model_asr="distil-whisper/distil-large-v3",
     model_translation="facebook/nllb-200-distilled-600M",
     src_lang="eng_Latn",
     tgt_lang="jpn_Jpan",
@@ -25,6 +24,18 @@ pipe = pipeline(
     device_map="auto"
 )
 output = pipe("./sample_en.mp3")
+# output = pipe("./sample_en.mp3", src_lang="eng_Latn", tgt_lang="jpn_Jpan")
+print(output)
+pipe = pipeline(
+    "cascaded-s2t-translation",
+    model_asr="kotoba-tech/kotoba-whisper-v2.0",
+    model_translation="facebook/nllb-200-distilled-600M",
+    src_lang="eng_Latn",
+    tgt_lang="jpn_Jpan",
+    chunk_length_s=15,
+    device_map="auto"
+)
+output = pipe("./sample_ja.mp3")
 # output = pipe("./sample_en.mp3", src_lang="eng_Latn", tgt_lang="jpn_Jpan")
 print(output)
 
