@@ -21,6 +21,13 @@ from transformers import WhisperTokenizer
 from datasets import load_dataset
 from evaluate import load
 
+pretty_dataset_names = {
+    "japanese-asr/ja_asr.jsut_basic5000": "JSUT Basic 5000",
+    "japanese-asr/ja_asr.common_voice_8_0": "CommonVoice 8 (Japanese test set)",
+    "japanese-asr/ja_asr.reazonspeech_test": "ReazonSpeech (held out test set)",
+    "japanese-asr/en_asr.esb_eval": "ESB"
+}
+
 parser = argparse.ArgumentParser(description='Compute CER/WER for Japanese ASR model.')
 parser.add_argument('-m', '--model', default="kotoba-tech/kotoba-whisper-v1.1", type=str)
 parser.add_argument('-d', '--dataset', default="japanese-asr/ja_asr.jsut_basic5000", type=str)
@@ -66,20 +73,19 @@ if arg.pretty_table:
         f.write("\n".join([json.dumps(i) for i in metrics]))
 
     df_metric = df_metric.round(1)
-    df_metric["dataset"] = [f"[{m}](https://huggingface.co/datasets/{m})" for m in df_metric["dataset"]]
+    df_metric["dataset"] = [f"[{pretty_dataset_names[m] if m in pretty_dataset_names else m}](https://huggingface.co/datasets/{m})" + (f" ({c})" if c is not None else "") for m, c in zip(df_metric["dataset"], df_metric["dataset_config"])]
     df_metric["model"] = [pretty(m, p, s) for m, p, s in zip(df_metric["model"], df_metric["punctuator"], df_metric["stable_ts"])]
-    # df_metric["cer/wer (norm)"] = [f"{c}/{w}" for c, w in zip(df_metric["cer_norm"], df_metric["wer_norm"])]
-    # df_metric["cer/wer (raw)"] = [f"{c}/{w}" for c, w in zip(df_metric["cer_raw"], df_metric["wer_raw"])]
-    # print(df_metric.pivot(values="cer/wer (norm)", columns="dataset", index="model").to_markdown(), "\n")
-    print("\nNORM (CER)")
-    print(df_metric.pivot_table(values="cer_norm", columns="dataset", index="model", aggfunc='first').to_markdown(), "\n")
+
     print("\nNORM (WER)")
     print(df_metric.pivot_table(values="wer_norm", columns="dataset", index="model", aggfunc='first').to_markdown(), "\n")
-    print("\nRAW (CER)")
-    # print(df_metric.pivot(values="cer/wer (raw)", columns="dataset", index="model").to_markdown(), "\n")
-    print(df_metric.pivot_table(values="cer_raw", columns="dataset", index="model", aggfunc='first').to_markdown(), "\n")
     print("\nRAW (WER)")
     print(df_metric.pivot_table(values="wer_raw", columns="dataset", index="model", aggfunc='first').to_markdown(), "\n")
+    if arg.language == "ja":
+        print("\nNORM (CER)")
+        print(df_metric.pivot_table(values="cer_norm", columns="dataset", index="model", aggfunc='first').to_markdown(), "\n")
+        print("\nRAW (CER)")
+        print(df_metric.pivot_table(values="cer_raw", columns="dataset", index="model", aggfunc='first').to_markdown(), "\n")
+
     exit()
 
 # model config

@@ -238,45 +238,45 @@ for e in range(1, 1 + epoch):
       print(f"python ./misc/hf_dataset_download.py -d 'japanese-asr/whisper_transcriptions.mls.wer_10.0.vectorized' -c '{en}' &")
       print(f"distillation '{prev_ja}' '{prev_en}' '{random_seed}'")
     prev = [ja, en]
-  print(f"distillation '{ja}' '{en}' '{random_seed}'")
+print(f"distillation '{ja}' '{en}' '{random_seed}'")
 ```
 
 
 ##########################
 # Evaluate Student Model #
 ##########################
+# Japanese ASR
 for DATA in "japanese-asr/ja_asr.jsut_basic5000" "japanese-asr/ja_asr.reazonspeech_test" "japanese-asr/ja_asr.common_voice_8_0"
 do
   python run_short_form_eval.py -l "ja" -t "transcribe" -m "${HF_ORG}/${HF_MODEL_ALIAS}" -d "${DATA}" -b 256
 done
-python run_short_form_eval.py -l "en" -t "transcribe" -m "${HF_ORG}/${HF_MODEL_ALIAS}" -d "japanese-asr/esb_eval" --dataset-config "ami" --dataset-split "validation" --column-text "text" -b 256
-python run_short_form_eval.py -l "en" -t "transcribe" -m "${HF_ORG}/${HF_MODEL_ALIAS}" -d "japanese-asr/esb_eval" --dataset-config "earnings22" --dataset-split "validation" --column-text "text" -b 256
-python run_short_form_eval.py -l "en" -t "transcribe" -m "${HF_ORG}/${HF_MODEL_ALIAS}" -d "japanese-asr/esb_eval" --dataset-config "tedlium" --dataset-split "validation" --column-text "text" -b 256
-python run_short_form_eval.py -l "en" -t "transcribe" -m "${HF_ORG}/${HF_MODEL_ALIAS}" -d "japanese-asr/esb_eval" --dataset-config "librispeech" --dataset-split "validation.clean" --column-text "text" -b 256
-python run_short_form_eval.py -l "en" -t "transcribe" -m "${HF_ORG}/${HF_MODEL_ALIAS}" -d "japanese-asr/esb_eval" --dataset-config "voxpopuli" --dataset-split "validation" --column-text "text" -b 256
-
-
-
-for DATA in "japanese-asr/ja_asr.jsut_basic5000" "japanese-asr/ja_asr.reazonspeech_test" "japanese-asr/ja_asr.common_voice_8_0"
+# English ASR
+for DATA_CONFIG in "ami" "earnings22" "tedlium" "librispeech" "voxpopuli"
 do
-  python run_short_form_eval.py -l "ja" -t "transcribe" -m "asahi417/distil-whisper-bilingual" -d "${DATA}" -b 256
+  python run_short_form_eval.py -l "en" -t "transcribe" -m "${HF_ORG}/${HF_MODEL_ALIAS}" -d "japanese-asr/en_asr.esb_eval" --dataset-config "${DATA_CONFIG}" --dataset-split "validation" --column-text "text" -b 256
 done
-python run_short_form_eval.py -l "en" -t "transcribe" -m "asahi417/distil-whisper-bilingual" -d "japanese-asr/esb_eval" --dataset-config "ami" --dataset-split "validation" --column-text "text" -b 256
-python run_short_form_eval.py -l "en" -t "transcribe" -m "asahi417/distil-whisper-bilingual" -d "japanese-asr/esb_eval" --dataset-config "earnings22" --dataset-split "validation" --column-text "text" -b 256
-python run_short_form_eval.py -l "en" -t "transcribe" -m "asahi417/distil-whisper-bilingual" -d "japanese-asr/esb_eval" --dataset-config "tedlium" --dataset-split "validation" --column-text "text" -b 256
-python run_short_form_eval.py -l "en" -t "transcribe" -m "asahi417/distil-whisper-bilingual" -d "japanese-asr/esb_eval" --dataset-config "librispeech" --dataset-split "validation.clean" --column-text "text" -b 256
-python run_short_form_eval.py -l "en" -t "transcribe" -m "asahi417/distil-whisper-bilingual" -d "japanese-asr/esb_eval" --dataset-config "voxpopuli" --dataset-split "validation" --column-text "text" -b 256
+python run_short_form_eval.py -l "en" -t "transcribe" -m "${HF_ORG}/${HF_MODEL_ALIAS}" -d "japanese-asr/en_asr.esb_eval" --dataset-config "librispeech" --dataset-split "validation.clean" --column-text "text" -b 256
+# Translation (JA2EN)
+for DATA_CONFIG in "fleurs" "covost2"
+do
+  python run_short_form_eval.py -l "en" -t "translate" -m "${HF_ORG}/${HF_MODEL_ALIAS}" -d "japanese-asr/ja2en.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 256
+done
+# Translation (EN2JA)
+for DATA_CONFIG in "fleurs" "covost2"
+do
+  python run_short_form_eval.py -l "ja" -t "translate" -m "${HF_ORG}/${HF_MODEL_ALIAS}" -d "japanese-asr/en2ja.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 256
+done
 
 ##########################
 # Evaluate Teacher Model #
 ##########################
 for MODEL in "openai/whisper-large" "openai/whisper-large-v2" "openai/whisper-large-v3" "openai/whisper-medium" "openai/whisper-small" "openai/whisper-base" "openai/whisper-tiny" "distil-whisper/distil-large-v3"
 do
-    python run_short_form_eval.py -l "en" -t "transcribe" -m "asahi417/distil-whisper-bilingual" -d "japanese-asr/esb_eval" --dataset-config "ami" --dataset-split "validation" --column-text "text" -b 256
-    python run_short_form_eval.py -l "en" -t "transcribe" -m "asahi417/distil-whisper-bilingual" -d "japanese-asr/esb_eval" --dataset-config "earnings22" --dataset-split "validation" --column-text "text" -b 256
-    python run_short_form_eval.py -l "en" -t "transcribe" -m "asahi417/distil-whisper-bilingual" -d "japanese-asr/esb_eval" --dataset-config "tedlium" --dataset-split "validation" --column-text "text" -b 256
-    python run_short_form_eval.py -l "en" -t "transcribe" -m "asahi417/distil-whisper-bilingual" -d "japanese-asr/esb_eval" --dataset-config "librispeech" --dataset-split "validation.clean" --column-text "text" -b 256
-    python run_short_form_eval.py -l "en" -t "transcribe" -m "asahi417/distil-whisper-bilingual" -d "japanese-asr/esb_eval" --dataset-config "voxpopuli" --dataset-split "validation" --column-text "text" -b 256
+    python run_short_form_eval.py -l "en" -t "transcribe" -m "asahi417/distil-whisper-bilingual" -d "japanese-asr/en_asr.esb_eval" --dataset-config "ami" --dataset-split "validation" --column-text "text" -b 256
+    python run_short_form_eval.py -l "en" -t "transcribe" -m "asahi417/distil-whisper-bilingual" -d "japanese-asr/en_asr.esb_eval" --dataset-config "earnings22" --dataset-split "validation" --column-text "text" -b 256
+    python run_short_form_eval.py -l "en" -t "transcribe" -m "asahi417/distil-whisper-bilingual" -d "japanese-asr/en_asr.esb_eval" --dataset-config "tedlium" --dataset-split "validation" --column-text "text" -b 256
+    python run_short_form_eval.py -l "en" -t "transcribe" -m "asahi417/distil-whisper-bilingual" -d "japanese-asr/en_asr.esb_eval" --dataset-config "librispeech" --dataset-split "validation.clean" --column-text "text" -b 256
+    python run_short_form_eval.py -l "en" -t "transcribe" -m "asahi417/distil-whisper-bilingual" -d "japanese-asr/en_asr.esb_eval" --dataset-config "voxpopuli" --dataset-split "validation" --column-text "text" -b 256
 done
 
 

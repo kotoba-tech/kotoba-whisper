@@ -124,7 +124,7 @@ done
 
 for DATA in "japanese-asr/ja_asr.jsut_basic5000" "japanese-asr/ja_asr.reazonspeech_test" "japanese-asr/ja_asr.common_voice_8_0"
 do
-  python run_short_form_eval.py -m "reazon-research/reazonspeech-nemo-v2" -d "${DATA}" -b 256
+  python run_short_form_eval.py -l "ja" -t "transcribe" -m "reazon-research/reazonspeech-nemo-v2" -d "${DATA}" -b 256
 done
 
 ####################
