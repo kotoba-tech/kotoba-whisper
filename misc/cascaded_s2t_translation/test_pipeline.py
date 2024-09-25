@@ -16,13 +16,14 @@ PIPELINE_REGISTRY.register_pipeline(
     tf_model=TFWhisperForConditionalGeneration
 )
 pipe = pipeline(
+    "cascaded-s2t-translation",
     model="distil-whisper/distil-large-v3",
     model_translation="facebook/nllb-200-distilled-600M",
-    task="cascaded-s2t-translation",
     src_lang="eng_Latn",
     tgt_lang="jpn_Jpan",
     chunk_length_s=15,
 )
 output = pipe("./sample_en.mp3", src_lang="eng_Latn", tgt_lang="jpn_Jpan")
+print(output)
 
 # pipe.push_to_hub(model_alias)

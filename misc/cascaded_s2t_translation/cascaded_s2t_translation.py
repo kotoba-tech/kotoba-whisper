@@ -20,11 +20,12 @@ class CascadedS2TTranslationPipeline(AutomaticSpeechRecognitionPipeline):
                  model_translation: "PreTrainedModel" = "facebook/nllb-200-1.3B",
                  chunk_length_s: int = 0,
                  **kwargs):
+        kwargs.pop("task")
         self.type = "seq2seq_whisper"
         self.tgt_lang = tgt_lang
         self.src_lang = src_lang
         self.translation = pipeline("translation", model=model_translation, **kwargs)
-        super().__init__(model=model, chunk_length_s=chunk_length_s, **kwargs)
+        super().__init__(model=model, task="automatic-speech-recognition", chunk_length_s=chunk_length_s, **kwargs)
 
     def preprocess(self, inputs, chunk_length_s=0, stride_length_s=None):
         if isinstance(inputs, str):
