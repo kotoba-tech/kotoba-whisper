@@ -141,7 +141,7 @@ else:
             tgt_lang=language_code[arg.language],
             model_kwargs=model_kwargs,
             chunk_length_s=arg.chunk_length,
-            batch_size=arg.batch_size,
+            batch_size=arg.batch,
             trust_remote_code=True,
         )
         generate_kwargs = {}
