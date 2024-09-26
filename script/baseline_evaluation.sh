@@ -63,7 +63,7 @@ python run_short_form_eval.py -l "en" -t "transcribe" -m "japanese-asr/distil-wh
 for DATA_CONFIG in "fleurs" "covost2"
 do
   python run_short_form_eval.py -l "en" -t "translate" -m "japanese-asr/distil-whisper-bilingual-v1.0" -d "japanese-asr/ja2en.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 256
-  python run_short_form_eval.py -l "en" -t "translate" -m "japanese-asr/ja-cascaded-s2t-translation" -d "japanese-asr/ja2en.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 256
+  python run_short_form_eval.py -l "en" -t "translate" -m "japanese-asr/ja-cascaded-s2t-translation" -d "japanese-asr/ja2en.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 32
 done
 
 #######################
@@ -72,4 +72,5 @@ done
 for DATA_CONFIG in "fleurs" "covost2"
 do
   python run_short_form_eval.py -l "ja" -t "translate" -m "japanese-asr/distil-whisper-bilingual-v1.0" -d "japanese-asr/en2ja.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 256
+  python run_short_form_eval.py -l "ja" -t "translate" -m "japanese-asr/en-cascaded-s2t-translation" -d "japanese-asr/en2ja.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 32
 done
