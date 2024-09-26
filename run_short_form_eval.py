@@ -143,6 +143,7 @@ else:
             chunk_length_s=arg.chunk_length,
             batch_size=arg.batch,
             trust_remote_code=True,
+            device_map="auto"
         )
         generate_kwargs = {}
     elif arg.model in ["reazon-research/reazonspeech-nemo-v2"]:
