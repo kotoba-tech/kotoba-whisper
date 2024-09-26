@@ -106,27 +106,6 @@ do
   python run_short_form_eval.py -l "ja" -t "transcribe" -m "${HF_ORG}/${HF_MODEL_ALIAS}" -d "${DATA}" -b 256
 done
 
-#####################################
-# (Optional) Evaluate Teacher Model #
-#####################################
-
-for MODEL in "openai/whisper-large" "openai/whisper-large-v2" "openai/whisper-large-v3" "openai/whisper-medium" "openai/whisper-small" "openai/whisper-base" "openai/whisper-tiny"
-do
-    for DATA in "japanese-asr/ja_asr.jsut_basic5000" "japanese-asr/ja_asr.reazonspeech_test" "japanese-asr/ja_asr.common_voice_8_0"
-    do
-    python run_short_form_eval.py -l "ja" -t "transcribe" -m ${MODEL} -d "${DATA}" -b 32
-  done
-done
-
-##################################
-# (Optional) Evaluate Nemo Model #
-##################################
-
-for DATA in "japanese-asr/ja_asr.jsut_basic5000" "japanese-asr/ja_asr.reazonspeech_test" "japanese-asr/ja_asr.common_voice_8_0"
-do
-  python run_short_form_eval.py -l "ja" -t "transcribe" -m "reazon-research/reazonspeech-nemo-v2" -d "${DATA}" -b 256
-done
-
 ####################
 # Trouble Shooting #
 ####################

@@ -25,7 +25,9 @@ pretty_dataset_names = {
     "japanese-asr/ja_asr.jsut_basic5000": "JSUT Basic 5000",
     "japanese-asr/ja_asr.common_voice_8_0": "CommonVoice 8 (Japanese test set)",
     "japanese-asr/ja_asr.reazonspeech_test": "ReazonSpeech (held out test set)",
-    "japanese-asr/en_asr.esb_eval": "ESB"
+    "japanese-asr/en_asr.esb_eval": "ESB",
+    "japanese-asr/ja2en.s2t_translation": "Translation (Ja->En)",
+    "japanese-asr/en2ja.s2t_translation": "Translation (En->Ja)"
 }
 
 parser = argparse.ArgumentParser(description='Compute CER/WER for Japanese ASR model.')
@@ -130,6 +132,19 @@ else:
     if arg.model in ["kotoba-tech/kotoba-whisper-v1.1", "kotoba-tech/kotoba-whisper-v2.1"]:
         pipe = pipeline(trust_remote_code=True, punctuator=arg.punctuator, stable_ts=arg.stable_ts, **pipeline_config)
         stable_ts, punctuator = arg.stable_ts, arg.punctuator
+    elif arg.model in ["japanese-asr/ja-cascaded-s2t-translation", "japanese-asr/en-cascaded-s2t-translation"]:
+        assert arg.task == "translate"
+        language_code = {"ja": "jpn_Jpan", "en": "eng_Latn"}
+        pipe = pipeline(
+            model=arg.model,
+            model_translation="facebook/nllb-200-3.3B",
+            tgt_lang=language_code[arg.language],
+            model_kwargs=model_kwargs,
+            chunk_length_s=arg.chunk_length,
+            batch_size=arg.batch_size,
+            trust_remote_code=True,
+        )
+        generate_kwargs = {}
     elif arg.model in ["reazon-research/reazonspeech-nemo-v2"]:
         assert arg.task == "transcribe" and arg.language == "ja"
 
