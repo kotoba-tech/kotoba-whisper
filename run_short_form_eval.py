@@ -137,13 +137,14 @@ else:
         language_code = {"ja": "jpn_Jpan", "en": "eng_Latn"}
         pipe = pipeline(
             model=arg.model,
+            torch_dtype=torch_dtype,
+            device=device,
             model_translation="facebook/nllb-200-3.3B",
             tgt_lang=language_code[arg.language],
             model_kwargs=model_kwargs,
             chunk_length_s=arg.chunk_length,
             batch_size=arg.batch,
             trust_remote_code=True,
-            device_map="auto"
         )
         generate_kwargs = {}
     elif arg.model in ["reazon-research/reazonspeech-nemo-v2"]:
