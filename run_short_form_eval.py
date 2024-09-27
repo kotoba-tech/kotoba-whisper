@@ -45,6 +45,7 @@ parser.add_argument('-c', '--chunk-length', default=15, type=int)
 parser.add_argument('-o', '--output-dir', default="eval_pipeline", type=str)
 parser.add_argument('-p', '--punctuator', action="store_true")
 parser.add_argument('-s', '--stable-ts', action="store_true")
+parser.add_argument('--translation-model', default="facebook/nllb-200-3.3B", type=str)
 parser.add_argument('--pretty-table', action="store_true")
 arg = parser.parse_args()
 
@@ -115,10 +116,19 @@ metric = {
     "task": arg.task
 }
 stable_ts, punctuator = None, None
-prediction_path = (f"{arg.output_dir}/model-{os.path.basename(arg.model)}.dataset-{os.path.basename(arg.dataset)}."
-                   f"dataset_config-{arg.dataset_config}.dataset_split-{arg.dataset_split}."
-                   f"language-{arg.language}.task-{arg.task}.stable-ts-{stable_ts}."
-                   f"punctuator-{punctuator}.chunk_length-{arg.chunk_length}.csv")
+if arg.model in ["japanese-asr/ja-cascaded-s2t-translation", "japanese-asr/en-cascaded-s2t-translation"]:
+    prediction_path = (f"{arg.output_dir}/model-{os.path.basename(arg.model)}.dataset-{os.path.basename(arg.dataset)}."
+                       f"dataset_config-{arg.dataset_config}.dataset_split-{arg.dataset_split}."
+                       f"language-{arg.language}.task-{arg.task}.stable-ts-{stable_ts}."
+                       f"punctuator-{punctuator}.chunk_length-{arg.chunk_length}."
+                       f"translation.{os.path.basename(arg.translation_model)}.csv")
+    metric["translation_model"] = arg.translation_model
+else:
+    prediction_path = (f"{arg.output_dir}/model-{os.path.basename(arg.model)}.dataset-{os.path.basename(arg.dataset)}."
+                       f"dataset_config-{arg.dataset_config}.dataset_split-{arg.dataset_split}."
+                       f"language-{arg.language}.task-{arg.task}.stable-ts-{stable_ts}."
+                       f"punctuator-{punctuator}.chunk_length-{arg.chunk_length}.csv")
+
 if os.path.exists(prediction_path):
     df = pd.read_csv(prediction_path)
     prediction_norm = df["prediction_norm"].values.tolist()
@@ -139,7 +149,7 @@ else:
             model=arg.model,
             torch_dtype=torch_dtype,
             device=device,
-            model_translation="facebook/nllb-200-3.3B",
+            model_translation=arg.translation_model,
             tgt_lang=language_code[arg.language],
             model_kwargs=model_kwargs,
             chunk_length_s=arg.chunk_length,
