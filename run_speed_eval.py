@@ -3,8 +3,10 @@ import json
 import os
 from statistics import mean, stdev
 from time import time
+from pprint import pprint
 
 import torch
+import pandas as pd
 import numpy as np
 from transformers import pipeline
 
@@ -25,8 +27,23 @@ parser.add_argument('-n', '--n-trial', default=15, type=int)
 parser.add_argument('-d', '--duration', default=10, type=int)
 parser.add_argument('-s', '--sampling-rate', default=16000, type=int)
 parser.add_argument('--translation-model', default="facebook/nllb-200-3.3B", type=str)
+parser.add_argument('--pretty-table', action="store_true")
 arg = parser.parse_args()
 
+if arg.pretty_table:
+
+    def pretty(m, t):
+        if str(t) != "nan":
+            return f"[{m}](https://huggingface.co/{m}) ([{t}](https://huggingface.co/{t}))"
+        return f"[{m}](https://huggingface.co/{m})"
+
+
+    with open(arg.output) as f:
+        runtime = [json.loads(s) for s in f.read().split("\n") if len(s) > 0]
+    df = pd.DataFrame(runtime)
+    df["model"] = [pretty(m, t) for m, t in zip(df["model"], df["translation_model"])]
+    print(df.pivot_table(columns="duration", index="model", values="time (mean)").round(2).to_markdown())
+    exit()
 # model config
 torch_dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -55,6 +72,7 @@ for _ in range(arg.n_trial + 1):
     elapsed.append(time() - start)
 elapsed = elapsed[1:]
 metric.update({"time (mean)": mean(elapsed), "time (std)": stdev(elapsed), "time (all)": elapsed})
+pprint(metric)
 runtime = [metric]
 if os.path.exists(arg.output):
     with open(arg.output) as f:
