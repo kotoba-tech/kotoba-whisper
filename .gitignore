@@ -1,4 +1,5 @@
-.idea
+distil-whisper-bilingual
+distil-whisper-japanese
 test_audio
 whisper.cpp
 .idea

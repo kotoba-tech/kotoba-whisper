@@ -81,16 +81,16 @@ done
 #######################
 for DATA_CONFIG in "fleurs" "covost2"
 do
-#  python run_short_form_eval.py -l "ja" -t "translate" -m "japanese-asr/distil-whisper-bilingual-v1.0" -d "japanese-asr/en2ja.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 256
+  python run_short_form_eval.py -l "ja" -t "translate" -m "japanese-asr/distil-whisper-bilingual-v1.0" -d "japanese-asr/en2ja.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 256
   python run_short_form_eval.py -l "ja" -t "translate" -m "japanese-asr/en-cascaded-s2t-translation" -d "japanese-asr/en2ja.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 32 --translation-model "facebook/nllb-200-3.3B"
   python run_short_form_eval.py -l "ja" -t "translate" -m "japanese-asr/en-cascaded-s2t-translation" -d "japanese-asr/en2ja.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 32 --translation-model "facebook/nllb-200-1.3B"
   python run_short_form_eval.py -l "ja" -t "translate" -m "japanese-asr/en-cascaded-s2t-translation" -d "japanese-asr/en2ja.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 32 --translation-model "facebook/nllb-200-distilled-1.3B"
   python run_short_form_eval.py -l "ja" -t "translate" -m "japanese-asr/en-cascaded-s2t-translation" -d "japanese-asr/en2ja.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 32 --translation-model "facebook/nllb-200-distilled-600M"
-#  python run_short_form_eval.py -l "ja" -t "translate" -m "openai/whisper-large-v3" -d "japanese-asr/en2ja.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 32
-#  python run_short_form_eval.py -l "ja" -t "translate" -m "openai/whisper-large-v2" -d "japanese-asr/en2ja.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 32
-#  python run_short_form_eval.py -l "ja" -t "translate" -m "openai/whisper-large" -d "japanese-asr/en2ja.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 32
-#  python run_short_form_eval.py -l "ja" -t "translate" -m "openai/whisper-medium" -d "japanese-asr/en2ja.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 64
-#  python run_short_form_eval.py -l "ja" -t "translate" -m "openai/whisper-base" -d "japanese-asr/en2ja.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 256
-#  python run_short_form_eval.py -l "ja" -t "translate" -m "openai/whisper-small" -d "japanese-asr/en2ja.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 256
-#  python run_short_form_eval.py -l "ja" -t "translate" -m "openai/whisper-tiny" -d "japanese-asr/en2ja.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 256
+  python run_short_form_eval.py -l "ja" -t "translate" -m "openai/whisper-large-v3" -d "japanese-asr/en2ja.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 32
+  python run_short_form_eval.py -l "ja" -t "translate" -m "openai/whisper-large-v2" -d "japanese-asr/en2ja.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 32
+  python run_short_form_eval.py -l "ja" -t "translate" -m "openai/whisper-large" -d "japanese-asr/en2ja.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 32
+  python run_short_form_eval.py -l "ja" -t "translate" -m "openai/whisper-medium" -d "japanese-asr/en2ja.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 64
+  python run_short_form_eval.py -l "ja" -t "translate" -m "openai/whisper-base" -d "japanese-asr/en2ja.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 256
+  python run_short_form_eval.py -l "ja" -t "translate" -m "openai/whisper-small" -d "japanese-asr/en2ja.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 256
+  python run_short_form_eval.py -l "ja" -t "translate" -m "openai/whisper-tiny" -d "japanese-asr/en2ja.s2t_translation" --dataset-config "${DATA_CONFIG}" --dataset-split "test" --column-text "translation" -b 256
 done

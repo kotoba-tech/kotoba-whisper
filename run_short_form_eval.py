@@ -55,29 +55,38 @@ output_metric_file = f"{arg.output_dir}/metric.{arg.language}.{arg.task}.jsonl"
 # display mode
 if arg.pretty_table:
 
-    def pretty(m, p, s):
+    def pretty(m, p, s, t):
+        print(t)
         if p and s:
             return f"[{m}](https://huggingface.co/{m}) (punctuator + stable-ts)"
         if s:
             return f"[{m}](https://huggingface.co/{m}) (stable-ts)"
         if p:
             return f"[{m}](https://huggingface.co/{m}) (punctuator)"
+        if str(t) != "nan":
+            return f"[{m}](https://huggingface.co/{m}) ([{t}](https://huggingface.co/{t}))"
         return f"[{m}](https://huggingface.co/{m})"
 
 
     with open(output_metric_file) as f:
         metrics = [json.loads(s) for s in f.read().split("\n") if len(s) > 0]
-    df_metric = pd.DataFrame(metrics).sort_values(["dataset", "model", "chunk_length_s", "punctuator", "stable_ts"])
+    df_metric = pd.DataFrame(metrics).sort_values([
+        "dataset", "model", "chunk_length_s", "translation_model", "punctuator", "stable_ts"
+    ])
     df_metric = df_metric[df_metric.language == arg.language]
     df_metric = df_metric[df_metric.task == arg.task]
-    df_metric = df_metric.drop_duplicates(["dataset", "dataset_config", "dataset_split", "model", "chunk_length_s", "punctuator", "stable_ts"])
+    df_metric = df_metric.drop_duplicates([
+        "dataset", "dataset_config", "dataset_split", "model", "chunk_length_s", "translation_model", "punctuator", "stable_ts"
+    ])
     metrics = [i.to_dict() for _, i in df_metric.iterrows()]
     with open(output_metric_file, "w") as f:
         f.write("\n".join([json.dumps(i) for i in metrics]))
 
     df_metric = df_metric.round(1)
     df_metric["dataset"] = [f"[{pretty_dataset_names[m] if m in pretty_dataset_names else m}](https://huggingface.co/datasets/{m})" + (f" ({c})" if c is not None else "") for m, c in zip(df_metric["dataset"], df_metric["dataset_config"])]
-    df_metric["model"] = [pretty(m, p, s) for m, p, s in zip(df_metric["model"], df_metric["punctuator"], df_metric["stable_ts"])]
+    df_metric["model"] = [pretty(m, p, s, t) for m, p, s, t in zip(
+        df_metric["model"], df_metric["punctuator"], df_metric["stable_ts"], df_metric["translation_model"]
+    )]
 
     print("\nNORM (WER)")
     print(df_metric.pivot_table(values="wer_norm", columns="dataset", index="model", aggfunc='first').to_markdown(), "\n")
