@@ -56,7 +56,6 @@ output_metric_file = f"{arg.output_dir}/metric.{arg.language}.{arg.task}.jsonl"
 if arg.pretty_table:
 
     def pretty(m, p, s, t):
-        print(t)
         if p and s:
             return f"[{m}](https://huggingface.co/{m}) (punctuator + stable-ts)"
         if s:

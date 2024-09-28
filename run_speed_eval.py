@@ -49,10 +49,11 @@ else:
 audio = generate_dummy_audio(arg.duration, arg.sampling_rate)
 # run test
 elapsed = []
-for _ in range(arg.n_trial):
+for _ in range(arg.n_trial + 1):
     start = time()
     transcription = pipe(audio.copy(), generate_kwargs=generate_kwargs)
     elapsed.append(time() - start)
+elapsed = elapsed[1:]
 metric.update({"time (mean)": mean(elapsed), "time (std)": stdev(elapsed), "time (all)": elapsed})
 runtime = [metric]
 if os.path.exists(arg.output):
