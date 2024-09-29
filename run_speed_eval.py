@@ -41,8 +41,13 @@ if arg.pretty_table:
     with open(arg.output) as f:
         runtime = [json.loads(s) for s in f.read().split("\n") if len(s) > 0]
     df = pd.DataFrame(runtime)
+    if arg.attn:
+        df = df[df["attention"] == arg.attn]
+    else:
+        df = df[[i is None for i in df["attention"]]]
+
     df["model"] = [pretty(m, t) for m, t in zip(df["model"], df["translation_model"])]
-    print(df.pivot_table(columns="duration", index="model", values="time (mean)").round(2).to_markdown())
+    print(df.pivot_table(columns="duration", index="model", values="time (mean)").round(3).to_markdown())
     exit()
 # model config
 torch_dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32

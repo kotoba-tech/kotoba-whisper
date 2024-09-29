@@ -69,7 +69,10 @@ if arg.pretty_table:
 
     with open(output_metric_file) as f:
         metrics = [json.loads(s) for s in f.read().split("\n") if len(s) > 0]
-    df_metric = pd.DataFrame(metrics).sort_values([
+    df_metric = pd.DataFrame(metrics)
+    if "translation_model" not in df_metric.columns:
+        df_metric["translation_model"] = "nan"
+    df_metric = df_metric.sort_values([
         "dataset", "model", "chunk_length_s", "translation_model", "punctuator", "stable_ts"
     ])
     df_metric = df_metric[df_metric.language == arg.language]
