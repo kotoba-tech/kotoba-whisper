@@ -10,10 +10,10 @@ Reproducing Kotoba-whisper models requires following five stages to be completed
 7. [Evaluate Model](#7-evaluate-model)
 
 To reproduce kotoba-whisper models, please refer the following scripts:
-- [kotoba-tech/kotoba-whisper-v2.1](https://huggingface.co/kotoba-tech/kotoba-whisper-v2.1): [kotoba_whisper_v2.1.sh](kotoba_whisper_v2.1.sh)
-- [kotoba-tech/kotoba-whisper-v2.0](https://huggingface.co/kotoba-tech/kotoba-whisper-v2.0): [kotoba_whisper_v2.0.sh](kotoba_whisper_v2.0.sh)
-- [kotoba-tech/kotoba-whisper-v1.1](https://huggingface.co/kotoba-tech/kotoba-whisper-v1.1): [kotoba_whisper_v1.1.sh](kotoba_whisper_v1.1.sh)
-- [kotoba-tech/kotoba-whisper-v1.0](https://huggingface.co/kotoba-tech/kotoba-whisper-v1.0): [kotoba_whisper_v1.0.sh](kotoba_whisper_v1.0.sh)
+- [kotoba-tech/kotoba-whisper-v2.1](https://huggingface.co/kotoba-tech/kotoba-whisper-v2.1): [kotoba_whisper_v2.1.sh](script/distil_whisper_v2.1.sh)
+- [kotoba-tech/kotoba-whisper-v2.0](https://huggingface.co/kotoba-tech/kotoba-whisper-v2.0): [kotoba_whisper_v2.0.sh](script/distil_whisper_v2.0.sh)
+- [kotoba-tech/kotoba-whisper-v1.1](https://huggingface.co/kotoba-tech/kotoba-whisper-v1.1): [kotoba_whisper_v1.1.sh](script/distil_whisper_v1.1.sh)
+- [kotoba-tech/kotoba-whisper-v1.0](https://huggingface.co/kotoba-tech/kotoba-whisper-v1.0): [kotoba_whisper_v1.0.sh](script/distil_whisper_v1.0.sh)
 
 ## 1. Setup
 Clone the repo and configure your huggingface environment.
